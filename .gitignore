@@ -1,0 +1,31 @@
+target/
+.DS_Store
+mvnw*
+.mvn/
+
+### STS ###
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+nbproject/private/
+build/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+mvnw
+mvnw.cmd
+
+## so preu comitar de boas ##
+MainPOCGCM.java
+
