@@ -87,5 +87,31 @@ public class Controller {
 
     }
 
+    @RequestMapping(value = "/pc", method = RequestMethod.POST)
+    public ResponseEntity<String> pc(@RequestHeader(value = "Serial-Number") String serialNumber,
+                                     @RequestHeader(value = "Application-ID") String appID,
+                                     @RequestHeader(value = "Broadcast", required = false) String broadcast,
+                                     @RequestHeader(value = "Multicast", required = false) String multicast,
+                                     @RequestBody String request) {
+
+        
+        return new ResponseEntity<String>("", HttpStatus.OK);
+    }
+
+    @RequestMapping(value = "/pull", method = RequestMethod.GET)
+    public ResponseEntity<String> pull(@RequestHeader(value = "Serial-Number") String serialNumber) {
+
+        /* espera-se que o servico em nuvem leia a pilha do sqs e retorne uma resposta para aquela central
+         *
+         * responseHeaders:
+         *      "Serial-Number"
+         *      "Application-ID"
+         * responseBody:
+         *      "packet"
+         */
+
+        return new ResponseEntity<String>("", HttpStatus.OK);
+    }
+
 
 }
