@@ -2,14 +2,12 @@ package br.com.example.sqs.impl;
 
 import br.com.example.bean.Message;
 import br.com.example.sqs.SimpleMessageQueue;
+import org.apache.commons.lang3.NotImplementedException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Service;
 
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.*;
 
 /**
  * Created by jordaoesa on 25/11/16.
@@ -17,64 +15,113 @@ import java.util.concurrent.LinkedBlockingQueue;
 @Component
 public class SimpleMessageQueueImpl implements SimpleMessageQueue {
 
-    private Queue<Message> centralQueue = new LinkedBlockingQueue<>();
-    private Queue<Message> applicationQueue = new LinkedBlockingQueue<>();
+    private final Logger LOGGER = LoggerFactory.getLogger(SimpleMessageQueueImpl.class);
 
-    public boolean produceMessageToCentral(Message message) {
-        return this.centralQueue.add(message);
+    private final String poolingQueueLock = "POOLING_QUEUE_MAP_LOCK";
+    private Map<String, IPoolingQueue> poolingQueueMap = new TreeMap<>();
+    private String poolingQueueClassName;
+
+    public SimpleMessageQueueImpl(){}
+
+    public SimpleMessageQueueImpl(final String className){
+        this.poolingQueueClassName = className;
     }
 
-    public Message peekMessageOfCentral() {
-        return this.centralQueue.peek();
+    public void setPoolingQueueClassName(final String poolingQueueClassName) {
+        this.poolingQueueClassName = poolingQueueClassName;
     }
 
-    public Message consumeMessageOfCentral() {
-        return this.centralQueue.poll();
+    public IPoolingQueue createPoolingQueue(final String queueName) throws Exception {
+        if(poolingQueueClassName != null && !poolingQueueClassName.trim().isEmpty()) {
+          if(poolingQueueClassName.equals(AmazonPoolingQueue.class.getName())) {
+              LOGGER.info("SimpleMessageQueueImpl instance creating a AmazonPoolingQueue.");
+              AmazonPoolingQueue amazonPoolingQueue = new AmazonPoolingQueue();
+              AmazonSQSApi amazonSQSApi = null;
+              if(amazonSQSApi == null) {
+                  throw new NotImplementedException("Implement this!");
+              }
+              amazonPoolingQueue.setAmazonSQSApi(amazonSQSApi);
+              amazonPoolingQueue.setQueueName(queueName);
+              return amazonPoolingQueue;
+          }
+        }
+
+        LOGGER.info("SimpleMessageQueueImpl instance creating a PoolingQueue.");
+        PoolingQueue poolingQueue = new PoolingQueue(queueName);
+        return poolingQueue;
     }
 
-    public List<Message> consumeMessageOfCentral(final int amount) {
-        List<Message> messages = new LinkedList<>();
-        synchronized (this.centralQueue) {
-            int counter = amount;
-            Iterator<Message> messageIterator = this.centralQueue.iterator();
-            while(messageIterator.hasNext()) {
-                messages.add(messages.size(), messageIterator.next());
-                counter--;
-                if(counter == 0) {
-                    break;
-                }
+    public boolean produceMessageToCentral(final String centralName, final Message message) throws Exception {
+        synchronized (poolingQueueLock) {
+            if(poolingQueueMap.containsKey(centralName)) {
+                return poolingQueueMap.get(centralName).produceMessageToCentral(message);
             }
         }
-        return messages;
+        return false;
     }
 
-
-
-    public boolean produceMessageToApplication(Message message) {
-        return this.applicationQueue.add(message);
-    }
-
-    public Message peekMessageOfApplication() {
-        return this.applicationQueue.peek();
-    }
-
-    public Message consumeMessageOfApplication() {
-        return this.applicationQueue.poll();
-    }
-
-    public List<Message> consumeMessageOfApplication(final int amount) {
-        List<Message> messages = new LinkedList<>();
-        synchronized (this.applicationQueue) {
-            int counter = amount;
-            Iterator<Message> messageIterator = this.applicationQueue.iterator();
-            while(messageIterator.hasNext()) {
-                messages.add(messages.size(), messageIterator.next());
-                counter--;
-                if(counter == 0) {
-                    break;
-                }
+    public Message peekMessageOfCentral(final String centralName) throws Exception {
+        synchronized (poolingQueueLock) {
+            if(poolingQueueMap.containsKey(centralName)) {
+                return poolingQueueMap.get(centralName).peekMessageOfCentral();
             }
         }
-        return messages;
+        return null;
+    }
+
+    public Message consumeMessageOfCentral(final String centralName) throws Exception {
+        synchronized (poolingQueueLock) {
+            if(poolingQueueMap.containsKey(centralName)) {
+                return poolingQueueMap.get(centralName).consumeMessageOfCentral();
+            }
+        }
+        return null;
+    }
+
+    public List<Message> consumeMessageOfCentral(final String centralName, final int amount) throws Exception {
+        synchronized (poolingQueueLock) {
+            if(poolingQueueMap.containsKey(centralName)) {
+                return poolingQueueMap.get(centralName).consumeMessageOfCentral(amount);
+            }
+        }
+        return new ArrayList<>();
+    }
+
+
+
+    public boolean produceMessageToApplication(final String centralName, final String applicationId, Message message) throws Exception {
+        synchronized (poolingQueueLock) {
+            if(poolingQueueMap.containsKey(centralName)) {
+                return poolingQueueMap.get(centralName).produceMessageToApplication(applicationId, message);
+            }
+        }
+        return false;
+    }
+
+    public Message peekMessageOfApplication(final String centralName, final String applicationId) throws Exception {
+        synchronized (poolingQueueLock) {
+            if(poolingQueueMap.containsKey(centralName)) {
+                return poolingQueueMap.get(centralName).peekMessageOfApplication(applicationId);
+            }
+        }
+        return null;
+    }
+
+    public Message consumeMessageOfApplication(final String centralName, final String applicationId) throws Exception {
+        synchronized (poolingQueueLock) {
+            if(poolingQueueMap.containsKey(centralName)) {
+                return poolingQueueMap.get(centralName).consumeMessageOfApplication(applicationId);
+            }
+        }
+        return null;
+    }
+
+    public List<Message> consumeMessageOfApplication(final String centralName, final String applicationId, final int amount) throws Exception {
+        synchronized (poolingQueueLock) {
+            if(poolingQueueMap.containsKey(centralName)) {
+                return poolingQueueMap.get(centralName).consumeMessageOfApplication(applicationId, amount);
+            }
+        }
+        return new ArrayList<>();
     }
 }

@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.annotation.PostConstruct;
 import java.security.Timestamp;
 import java.util.Date;
 import java.util.List;
@@ -27,6 +28,13 @@ public class Controller {
 
     @Autowired
     private SimpleMessageQueue simpleMessageQueue;
+
+    @PostConstruct
+    public void init() {
+        // This method runs after the controller has been created.
+        // Uncomment the following line to customize a pooling queue implementation.
+        // simpleMessageQueue.setPoolingQueueClassName(SOME_POOLING_QUEUE_IMPLEMENTATION_NAME_HERE);
+    }
 
     @RequestMapping(value = "/", method = RequestMethod.GET)
     public ResponseEntity<String> index() {
@@ -65,11 +73,21 @@ public class Controller {
             LOGGER.info("packet nulo");
             if(messageAmount == null) {
                 LOGGER.info("messageAmount nulo");
-                Message message = simpleMessageQueue.consumeMessageOfApplication();
+                Message message = null;
+                try {
+                    message = simpleMessageQueue.consumeMessageOfApplication(serialNumber, appID);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
                 return new ResponseEntity<String>(gson.toJson(message), HttpStatus.OK);
             } else {
                 LOGGER.info("messageAmount:"+messageAmount);
-                List<Message> messages = simpleMessageQueue.consumeMessageOfApplication(Integer.valueOf(messageAmount));
+                List<Message> messages = null;
+                try {
+                    messages = simpleMessageQueue.consumeMessageOfApplication(serialNumber, appID, Integer.valueOf(messageAmount));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
                 return new ResponseEntity<String>(gson.toJson(messages), HttpStatus.OK);
             }
         }
@@ -80,7 +98,12 @@ public class Controller {
         String timestamp = String.valueOf(new Date().getTime());
         String priority = "10";
         Message message = new Message(serialNumber, appID, timestamp, priority, packet);
-        boolean produced = simpleMessageQueue.produceMessageToCentral(message);
+        boolean produced = false;
+        try {
+            produced = simpleMessageQueue.produceMessageToCentral(serialNumber, message);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         return new ResponseEntity<String>(produced ? "OK" : "ERROR", HttpStatus.OK);
 
@@ -110,6 +133,11 @@ public class Controller {
          *      "packet"
          */
 
+        try {
+            Message message = simpleMessageQueue.consumeMessageOfCentral(serialNumber);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return new ResponseEntity<String>("", HttpStatus.OK);
     }
 

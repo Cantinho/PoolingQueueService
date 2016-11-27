@@ -1,6 +1,7 @@
 package br.com.example.sqs;
 
 import br.com.example.bean.Message;
+import br.com.example.sqs.impl.IPoolingQueue;
 
 import java.util.List;
 
@@ -9,21 +10,24 @@ import java.util.List;
  */
 public interface SimpleMessageQueue {
 
-    boolean produceMessageToCentral(Message message);
+    IPoolingQueue createPoolingQueue(final String queueName) throws Exception;
 
-    Message peekMessageOfCentral();
+    void setPoolingQueueClassName(final String poolingQueueClassName);
 
-    Message consumeMessageOfCentral();
+    boolean produceMessageToCentral(final String centralName, final Message message) throws Exception;
 
-    List<Message> consumeMessageOfCentral(final int amount);
+    Message peekMessageOfCentral(final String centralName) throws Exception;
 
-    boolean produceMessageToApplication(Message message);
+    Message consumeMessageOfCentral(final String centralName) throws Exception;
 
-    Message peekMessageOfApplication();
+    List<Message> consumeMessageOfCentral(final String centralName, final int amount) throws Exception;
 
-    Message consumeMessageOfApplication();
+    boolean produceMessageToApplication(final String centralName, final String applicationId, Message message) throws Exception;
 
-    List<Message> consumeMessageOfApplication(final int amount);
+    Message peekMessageOfApplication(final String centralName, final String applicationId) throws Exception;
 
+    Message consumeMessageOfApplication(final String centralName, final String applicationId) throws Exception;
+
+    List<Message> consumeMessageOfApplication(final String centralName, final String applicationId, final int amount) throws Exception;
 
 }
