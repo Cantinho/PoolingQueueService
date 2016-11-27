@@ -108,16 +108,47 @@ public class AmazonPoolingQueue implements IPoolingQueue {
         final String applicationIdQueueName = queueName + "_" + applicationId;
         boolean containsApplicationId = amazonSQSApi.listQueues().contains(applicationIdQueueName);
         synchronized (applicationLock) {
-            if (containsApplicationId) {
-                return amazonSQSApi.sendMessage(applicationIdQueueName, message);
-            } else {
-                boolean wasQueueCreated = amazonSQSApi.createQueue(applicationIdQueueName);
-                if(!wasQueueCreated) {
-                    LOGGER.info("Queue [" + applicationIdQueueName + "] was not created.");
-                    return false;
+            return sendMessage(applicationId, containsApplicationId, message);
+        }
+    }
+
+    @Override
+    public boolean broadcastMessageToApplication(final String applicationIdOrigin, final Message message) throws Exception {
+        checkAmazonSQSApiInstance();
+        final String applicationIdQueueName = queueName + "_" + applicationIdOrigin;
+        synchronized (applicationLock) {
+            boolean applicationIdOriginFound = amazonSQSApi.listQueues().contains(applicationIdQueueName);;
+            List<String> allApplicationQueueNames = amazonSQSApi.listQueues();
+            List<String> applicationQueueNamesFound = new ArrayList<>();
+            Iterator<String> applicationNamesIterator = allApplicationQueueNames.iterator();
+            while(applicationNamesIterator.hasNext()) {
+                String currentApplicationName = applicationNamesIterator.next();
+                if(currentApplicationName.startsWith(queueName) && !currentApplicationName.equals(applicationIdQueueName)) {
+                    // adds only the applicationId different than applicationIdOrigin.
+                    // ApplicationIdOrigin will be used if applicationIdOriginFound is true;
+                    // If ApplicationIdOrigin is false, applicationQueue will be created.
+                    applicationQueueNamesFound.add(currentApplicationName);
                 }
-                return amazonSQSApi.sendMessage(applicationIdQueueName, message);
             }
+            Iterator<String> applicationNamesFoundIterator = applicationQueueNamesFound.iterator();
+            while(applicationNamesFoundIterator.hasNext()) {
+                amazonSQSApi.sendMessage(applicationIdQueueName, message);
+            }
+            return sendMessage(applicationIdOrigin, applicationIdOriginFound, message);
+        }
+    }
+
+    private boolean sendMessage(final String applicationIdOrigin, final boolean applicationIdAlreadyExists, final Message message) {
+        final String applicationIdQueueName = queueName + "_" + applicationIdOrigin;
+        if (applicationIdAlreadyExists) {
+            return amazonSQSApi.sendMessage(applicationIdQueueName, message);
+        } else {
+            boolean wasQueueCreated = amazonSQSApi.createQueue(applicationIdQueueName);
+            if(!wasQueueCreated) {
+                LOGGER.info("Queue [" + applicationIdQueueName + "] was not created.");
+                return false;
+            }
+            return amazonSQSApi.sendMessage(applicationIdQueueName, message);
         }
     }
 
