@@ -117,13 +117,49 @@ public class Controller {
 
     }
 
+    /**
+     * Post message to application or applications (broadcast) of the same serialNumber (central).
+     * Header has a size limit. Maybe Multicast header have to be disabled.
+     *
+     * @param serialNumber
+     * @param appID
+     * @param broadcast
+     * @param multicast
+     * @param packet
+     * @return
+     */
     @RequestMapping(value = "/pc", method = RequestMethod.POST)
     public ResponseEntity<String> pc(@RequestHeader(value = "Serial-Number") String serialNumber,
                                      @RequestHeader(value = "Application-ID") String appID,
                                      @RequestHeader(value = "Broadcast", required = false) String broadcast,
                                      @RequestHeader(value = "Multicast", required = false) String multicast,
-                                     @RequestBody String request) {
+                                     @RequestBody String packet) {
 
+        if(broadcast != null) {
+
+        } else {
+            // post message to single application-id
+            /**
+             * Message: SerialNumber, ApplicationID, Timestamp, Priority, Message
+             */
+            String timestamp = String.valueOf(new Date().getTime());
+            String priority = "10";
+            Message message = new Message(serialNumber, appID, timestamp, priority, packet);
+            boolean produced = false;
+            try {
+                produced = simpleMessageQueue.produceMessageToApplication(serialNumber, appID, message);
+                return new ResponseEntity<String>(produced ? "OK" : "ERROR", HttpStatus.OK);
+            } catch (Exception e) {
+                e.printStackTrace();
+                LOGGER.error("Trying to create a central queue before resend the message.");
+                try {
+                    simpleMessageQueue.createPoolingQueue(serialNumber);
+                    produced = simpleMessageQueue.produceMessageToApplication(serialNumber, appID, message);
+                } catch (Exception e1) {
+                    e1.printStackTrace();
+                }
+            }
+        }
         
         return new ResponseEntity<String>("", HttpStatus.OK);
     }

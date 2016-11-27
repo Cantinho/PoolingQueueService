@@ -1,11 +1,14 @@
 package br.com.example.sqs.impl;
 
 import br.com.example.bean.Message;
+import br.com.example.exceptions.PoolingQueueException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
+
+import static br.com.example.exceptions.PoolingQueueException.APPLICATION_NOT_FOUND;
 
 /**
  * Created by samirtf on 26/11/16.
@@ -112,7 +115,7 @@ public class PoolingQueue implements IPoolingQueue {
                 return messagePolled;
             }
         }
-        return null;
+        throw new PoolingQueueException("", APPLICATION_NOT_FOUND);
     }
 
     public List<Message> consumeMessageOfApplication(final String applicationId, final int amount) throws Exception {
@@ -137,7 +140,7 @@ public class PoolingQueue implements IPoolingQueue {
                 }
             }
             LOGGER.info("Application queue [" + applicationId + "] has 0 messages");
-            return retrievedMessages;
+            throw new PoolingQueueException("", APPLICATION_NOT_FOUND);
         }
     }
 

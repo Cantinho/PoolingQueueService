@@ -1,6 +1,7 @@
 package br.com.example.sqs.impl;
 
 import br.com.example.bean.Message;
+import br.com.example.exceptions.PoolingQueueException;
 import br.com.example.sqs.SimpleMessageQueue;
 import org.apache.commons.lang3.NotImplementedException;
 import org.slf4j.Logger;
@@ -8,6 +9,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
+
+import static br.com.example.exceptions.PoolingQueueException.CENTRAL_NOT_FOUND;
 
 /**
  * Created by jordaoesa on 25/11/16.
@@ -57,7 +60,7 @@ public class SimpleMessageQueueImpl implements SimpleMessageQueue {
                 return poolingQueueMap.get(centralName).produceMessageToCentral(message);
             }
         }
-        throw new Exception("Central [" + centralName + "] does not exist.");
+        throw new PoolingQueueException("Central [" + centralName + "] does not exist.", CENTRAL_NOT_FOUND);
     }
 
     public Message peekMessageOfCentral(final String centralName) throws Exception {
@@ -66,7 +69,7 @@ public class SimpleMessageQueueImpl implements SimpleMessageQueue {
                 return poolingQueueMap.get(centralName).peekMessageOfCentral();
             }
         }
-        return null;
+        throw new PoolingQueueException("Central [" + centralName + "] does not exist.", CENTRAL_NOT_FOUND);
     }
 
     public Message consumeMessageOfCentral(final String centralName) throws Exception {
@@ -75,7 +78,7 @@ public class SimpleMessageQueueImpl implements SimpleMessageQueue {
                 return poolingQueueMap.get(centralName).consumeMessageOfCentral();
             }
         }
-        return null;
+        throw new PoolingQueueException("Central [" + centralName + "] does not exist.", CENTRAL_NOT_FOUND);
     }
 
     public List<Message> consumeMessageOfCentral(final String centralName, final int amount) throws Exception {
@@ -84,7 +87,7 @@ public class SimpleMessageQueueImpl implements SimpleMessageQueue {
                 return poolingQueueMap.get(centralName).consumeMessageOfCentral(amount);
             }
         }
-        return new ArrayList<>();
+        throw new PoolingQueueException("Central [" + centralName + "] does not exist.", CENTRAL_NOT_FOUND);
     }
 
 
@@ -95,7 +98,7 @@ public class SimpleMessageQueueImpl implements SimpleMessageQueue {
                 return poolingQueueMap.get(centralName).produceMessageToApplication(applicationId, message);
             }
         }
-        return false;
+        throw new PoolingQueueException("Central [" + centralName + "] does not exist.", CENTRAL_NOT_FOUND);
     }
 
     public Message peekMessageOfApplication(final String centralName, final String applicationId) throws Exception {
@@ -104,7 +107,7 @@ public class SimpleMessageQueueImpl implements SimpleMessageQueue {
                 return poolingQueueMap.get(centralName).peekMessageOfApplication(applicationId);
             }
         }
-        return null;
+        throw new PoolingQueueException("Central [" + centralName + "] does not exist.", CENTRAL_NOT_FOUND);
     }
 
     public Message consumeMessageOfApplication(final String centralName, final String applicationId) throws Exception {
@@ -113,7 +116,7 @@ public class SimpleMessageQueueImpl implements SimpleMessageQueue {
                 return poolingQueueMap.get(centralName).consumeMessageOfApplication(applicationId);
             }
         }
-        return null;
+        throw new PoolingQueueException("Central [" + centralName + "] does not exist.", CENTRAL_NOT_FOUND);
     }
 
     public List<Message> consumeMessageOfApplication(final String centralName, final String applicationId, final int amount) throws Exception {
@@ -122,6 +125,6 @@ public class SimpleMessageQueueImpl implements SimpleMessageQueue {
                 return poolingQueueMap.get(centralName).consumeMessageOfApplication(applicationId, amount);
             }
         }
-        return new ArrayList<>();
+        throw new PoolingQueueException("Central [" + centralName + "] does not exist.", CENTRAL_NOT_FOUND);
     }
 }
