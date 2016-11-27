@@ -82,6 +82,11 @@ public class Controller {
                     LOGGER.error("Unable to consume an application message from a nonexistent central [" + serialNumber + "].");
                     if(e.getCode() == PoolingQueueException.CENTRAL_NOT_FOUND) {
                         tryingToCreateCentral(serialNumber);
+                        try {
+                            message = simpleMessageQueue.consumeMessageOfApplication(serialNumber, appID);
+                        } catch (Exception e1) {
+                            e1.printStackTrace();
+                        }
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -97,6 +102,11 @@ public class Controller {
                     LOGGER.error("Unable to consume an application message from a nonexistent central [" + serialNumber + "].");
                     if(e.getCode() == PoolingQueueException.CENTRAL_NOT_FOUND) {
                         tryingToCreateCentral(serialNumber);
+                        try {
+                            messages = simpleMessageQueue.consumeMessageOfApplication(serialNumber, appID, Integer.valueOf(messageAmount));
+                        } catch (Exception e1) {
+                            e1.printStackTrace();
+                        }
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -119,6 +129,11 @@ public class Controller {
             LOGGER.error("Unable to produce an application message from a nonexistent central [" + serialNumber + "].");
             if(e.getCode() == PoolingQueueException.CENTRAL_NOT_FOUND) {
                 tryingToCreateCentral(serialNumber);
+                try {
+                    produced = simpleMessageQueue.produceMessageToCentral(serialNumber, message);
+                } catch (Exception e1) {
+                    e1.printStackTrace();
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
