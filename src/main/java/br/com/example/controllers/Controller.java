@@ -13,8 +13,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.PostConstruct;
-import java.security.Timestamp;
 import java.util.Date;
+import java.util.EmptyStackException;
 import java.util.List;
 
 /**
@@ -80,7 +80,9 @@ public class Controller {
                 } catch (PoolingQueueException e) {
                     //e.printStackTrace();
                     LOGGER.error("Unable to consume an application message from a nonexistent central [" + serialNumber + "].");
-                    tryingToCreateCentral(serialNumber);
+                    if(e.getCode() == PoolingQueueException.CENTRAL_NOT_FOUND) {
+                        tryingToCreateCentral(serialNumber);
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -93,7 +95,9 @@ public class Controller {
                 } catch (PoolingQueueException e) {
                     //e.printStackTrace();
                     LOGGER.error("Unable to consume an application message from a nonexistent central [" + serialNumber + "].");
-                    tryingToCreateCentral(serialNumber);
+                    if(e.getCode() == PoolingQueueException.CENTRAL_NOT_FOUND) {
+                        tryingToCreateCentral(serialNumber);
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -113,16 +117,11 @@ public class Controller {
         } catch (PoolingQueueException e) {
             //e.printStackTrace();
             LOGGER.error("Unable to produce an application message from a nonexistent central [" + serialNumber + "].");
-            tryingToCreateCentral(serialNumber);
+            if(e.getCode() == PoolingQueueException.CENTRAL_NOT_FOUND) {
+                tryingToCreateCentral(serialNumber);
+            }
         } catch (Exception e) {
             e.printStackTrace();
-            LOGGER.error("Trying to create a central queue before resend the message.");
-            try {
-                simpleMessageQueue.createPoolingQueue(serialNumber);
-                produced = simpleMessageQueue.produceMessageToCentral(serialNumber, message);
-            } catch (Exception e1) {
-                e1.printStackTrace();
-            }
         }
 
         return new ResponseEntity<String>(produced ? "OK" : "ERROR", HttpStatus.OK);
@@ -156,7 +155,13 @@ public class Controller {
         Message message = new Message(serialNumber, appID, timestamp, priority, packet);
 
         if(broadcast != null) {
-            boolean broadcasted = simpleMessageQueue.broadcastMessageToApplication(serialNumber, appID, message);
+            boolean broadcasted = false;
+            try {
+                broadcasted = simpleMessageQueue.broadcastMessageToApplication(serialNumber, appID, message);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return new ResponseEntity<String>(broadcasted ? "OK" : "ERROR", HttpStatus.OK);
         } else {
             // post message to single application-id
 
@@ -167,20 +172,14 @@ public class Controller {
             } catch (PoolingQueueException e) {
                 //e.printStackTrace();
                 LOGGER.error("Unable to produce an application message to a nonexistent central [" + serialNumber + "].");
-                tryingToCreateCentral(serialNumber);
+                if(e.getCode() == PoolingQueueException.CENTRAL_NOT_FOUND) {
+                    tryingToCreateCentral(serialNumber);
+                }
             } catch (Exception e) {
                 e.printStackTrace();
-                LOGGER.error("Trying to create a central queue before resend the message.");
-                try {
-                    simpleMessageQueue.createPoolingQueue(serialNumber);
-                    produced = simpleMessageQueue.produceMessageToApplication(serialNumber, appID, message);
-                } catch (Exception e1) {
-                    e1.printStackTrace();
-                }
             }
+            return new ResponseEntity<String>(produced ? "OK" : "ERROR", HttpStatus.OK);
         }
-        
-        return new ResponseEntity<String>("", HttpStatus.OK);
     }
 
     @RequestMapping(value = "/pull", method = RequestMethod.GET)
@@ -201,7 +200,9 @@ public class Controller {
         }  catch (PoolingQueueException e) {
             //e.printStackTrace();
             LOGGER.error("Unable to consume an application message from a nonexistent central [" + serialNumber + "].");
-            tryingToCreateCentral(serialNumber);
+            if(e.getCode() == PoolingQueueException.CENTRAL_NOT_FOUND) {
+                tryingToCreateCentral(serialNumber);
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
