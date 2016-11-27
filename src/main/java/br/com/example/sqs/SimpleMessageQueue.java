@@ -10,7 +10,7 @@ import java.util.List;
  */
 public interface SimpleMessageQueue {
 
-    IPoolingQueue createPoolingQueue(final String queueName) throws Exception;
+    void createPoolingQueue(final String queueName) throws Exception;
 
     void setPoolingQueueClassName(final String poolingQueueClassName);
 

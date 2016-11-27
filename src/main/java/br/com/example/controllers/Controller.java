@@ -103,6 +103,13 @@ public class Controller {
             produced = simpleMessageQueue.produceMessageToCentral(serialNumber, message);
         } catch (Exception e) {
             e.printStackTrace();
+            LOGGER.error("Trying to create a central queue before resend the message.");
+            try {
+                simpleMessageQueue.createPoolingQueue(serialNumber);
+                produced = simpleMessageQueue.produceMessageToCentral(serialNumber, message);
+            } catch (Exception e1) {
+                e1.printStackTrace();
+            }
         }
 
         return new ResponseEntity<String>(produced ? "OK" : "ERROR", HttpStatus.OK);
@@ -133,12 +140,13 @@ public class Controller {
          *      "packet"
          */
 
+        Message message = null;
         try {
-            Message message = simpleMessageQueue.consumeMessageOfCentral(serialNumber);
+            message = simpleMessageQueue.consumeMessageOfCentral(serialNumber);
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return new ResponseEntity<String>("", HttpStatus.OK);
+        return new ResponseEntity<String>(message == null ? "{}" : new Gson().toJson(message), HttpStatus.OK);
     }
 
 

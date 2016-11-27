@@ -31,7 +31,7 @@ public class SimpleMessageQueueImpl implements SimpleMessageQueue {
         this.poolingQueueClassName = poolingQueueClassName;
     }
 
-    public IPoolingQueue createPoolingQueue(final String queueName) throws Exception {
+    public void createPoolingQueue(final String queueName) throws Exception {
         if(poolingQueueClassName != null && !poolingQueueClassName.trim().isEmpty()) {
           if(poolingQueueClassName.equals(AmazonPoolingQueue.class.getName())) {
               LOGGER.info("SimpleMessageQueueImpl instance creating a AmazonPoolingQueue.");
@@ -42,13 +42,13 @@ public class SimpleMessageQueueImpl implements SimpleMessageQueue {
               }
               amazonPoolingQueue.setAmazonSQSApi(amazonSQSApi);
               amazonPoolingQueue.setQueueName(queueName);
-              return amazonPoolingQueue;
+              poolingQueueMap.put(queueName, amazonPoolingQueue);
           }
         }
 
-        LOGGER.info("SimpleMessageQueueImpl instance creating a PoolingQueue.");
+        LOGGER.info("SimpleMessageQueueImpl instance creating a PoolingQueue [" + queueName + "].");
         PoolingQueue poolingQueue = new PoolingQueue(queueName);
-        return poolingQueue;
+        poolingQueueMap.put(queueName, poolingQueue);
     }
 
     public boolean produceMessageToCentral(final String centralName, final Message message) throws Exception {
@@ -57,7 +57,7 @@ public class SimpleMessageQueueImpl implements SimpleMessageQueue {
                 return poolingQueueMap.get(centralName).produceMessageToCentral(message);
             }
         }
-        return false;
+        throw new Exception("Central [" + centralName + "] does not exist.");
     }
 
     public Message peekMessageOfCentral(final String centralName) throws Exception {

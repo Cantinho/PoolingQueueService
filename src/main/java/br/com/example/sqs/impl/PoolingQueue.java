@@ -36,7 +36,9 @@ public class PoolingQueue implements IPoolingQueue {
     @Override
     public boolean produceMessageToCentral(final Message message) throws Exception {
         validateQueueName();
-        return centralQueue.add(message);
+        boolean produced = centralQueue.add(message);
+        LOGGER.info("Central [" + queueName + "] has " + centralQueue.size() + " messages");
+        return produced;
     }
 
     public Message peekMessageOfCentral() throws Exception {
@@ -46,24 +48,32 @@ public class PoolingQueue implements IPoolingQueue {
 
     public Message consumeMessageOfCentral() throws Exception {
         validateQueueName();
-        return centralQueue.poll();
+        Message retrievedMessage = centralQueue.poll();
+        LOGGER.info("Central [" + queueName + "] has " + centralQueue.size() + " messages");
+        return retrievedMessage;
     }
 
     public List<Message> consumeMessageOfCentral(final int amount) throws Exception {
         validateQueueName();
-        List<Message> messages = new LinkedList<>();
+        List<Message> retrievedMessages = new LinkedList<>();
         synchronized (centralLock) {
             int counter = amount;
-            Iterator<Message> messageIterator = centralQueue.iterator();
-            while(messageIterator.hasNext()) {
-                messages.add(messages.size(), messageIterator.next());
+            while(counter > 0) {
+                Message retrievedMessage = centralQueue.poll();
+                if(retrievedMessage == null) {
+                    LOGGER.info("Central [" + queueName + "] has " + centralQueue.size() + " messages");
+                    return retrievedMessages;
+                }
+                retrievedMessages.add(retrievedMessages.size(), retrievedMessage);
                 counter--;
-                if(counter == 0) {
-                    break;
+                if(counter <= 0) {
+                    LOGGER.info("Central [" + queueName + "] has " + centralQueue.size() + " messages");
+                    return retrievedMessages;
                 }
             }
+            LOGGER.info("Central [" + queueName + "] has " + centralQueue.size() + " messages");
         }
-        return messages;
+        return retrievedMessages;
     }
 
     public boolean produceMessageToApplication(final String applicationId, final Message message) throws Exception {
@@ -71,13 +81,16 @@ public class PoolingQueue implements IPoolingQueue {
         boolean containsApplicationId = applicationQueues.containsKey(applicationId);
         synchronized (applicationLock) {
             if (containsApplicationId) {
-                return applicationQueues.get(applicationId).add(message);
+                boolean produced = applicationQueues.get(applicationId).add(message);
+                LOGGER.info("Application queue [" + applicationId + "] has " + applicationQueues.get(applicationId).size() + " messages");
+                return produced;
             } else {
                 Queue<Message> newApplicationQueue = new LinkedBlockingQueue<>();
                 boolean wasMessageAdded = newApplicationQueue.add(message);
+                LOGGER.info("Application queue [" + applicationId + "] has " + newApplicationQueue.size() + " messages");
                 if(applicationQueues.put(applicationId, newApplicationQueue) == null) {
                     LOGGER.info("There wasn't a previously queue with applicationId " + applicationId);
-                };
+                }
                 return wasMessageAdded;
             }
         }
@@ -94,7 +107,9 @@ public class PoolingQueue implements IPoolingQueue {
         synchronized (applicationLock) {
             boolean containsApplicationId = applicationQueues.containsKey(applicationId);
             if (containsApplicationId) {
-                return applicationQueues.get(applicationId).poll();
+                Message messagePolled = applicationQueues.get(applicationId).poll();
+                LOGGER.info("Application queue [" + applicationId + "] has " + applicationQueues.get(applicationId).size() + " messages");
+                return messagePolled;
             }
         }
         return null;
@@ -102,22 +117,27 @@ public class PoolingQueue implements IPoolingQueue {
 
     public List<Message> consumeMessageOfApplication(final String applicationId, final int amount) throws Exception {
         validateQueueName();
-        List<Message> messagesRetrieved = new LinkedList<>();
+        List<Message> retrievedMessages = new LinkedList<>();
         synchronized (applicationLock) {
             Queue<Message> retrievedApplicationQueue = applicationQueues.get(applicationId);
             if(retrievedApplicationQueue != null) {
-                Iterator<Message> messageIterator = retrievedApplicationQueue.iterator();
                 int counter = amount;
-                while(messageIterator.hasNext()) {
-                    // Adding message at last position to keep the correct order of messages.
-                    messagesRetrieved.add(messagesRetrieved.size(), messageIterator.next());
+                while(counter > 0) {
+                    Message retrievedMessage = retrievedApplicationQueue.poll();
+                    if(retrievedMessage == null) {
+                        LOGGER.info("Application queue [" + applicationId + "] has " + retrievedApplicationQueue.size() + " messages");
+                        return retrievedMessages;
+                    }
+                    retrievedMessages.add(retrievedMessages.size(), retrievedMessage);
                     counter--;
                     if(counter <= 0) {
-                        return messagesRetrieved;
+                        LOGGER.info("Application queue [" + applicationId + "] has " + retrievedApplicationQueue.size() + " messages");
+                        return retrievedMessages;
                     }
                 }
             }
-            return messagesRetrieved;
+            LOGGER.info("Application queue [" + applicationId + "] has 0 messages");
+            return retrievedMessages;
         }
     }
 

@@ -171,23 +171,4 @@ public class AmazonPoolingQueue implements IPoolingQueue {
         }
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 }
