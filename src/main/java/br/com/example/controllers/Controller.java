@@ -1,6 +1,7 @@
 package br.com.example.controllers;
 
 import br.com.example.bean.Message;
+import br.com.example.exceptions.PoolingQueueException;
 import br.com.example.sqs.SimpleMessageQueue;
 import com.google.gson.Gson;
 import org.slf4j.Logger;
@@ -76,6 +77,10 @@ public class Controller {
                 Message message = null;
                 try {
                     message = simpleMessageQueue.consumeMessageOfApplication(serialNumber, appID);
+                } catch (PoolingQueueException e) {
+                    //e.printStackTrace();
+                    LOGGER.error("Unable to consume an application message from a nonexistent central [" + serialNumber + "].");
+                    tryingToCreateCentral(serialNumber);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -85,6 +90,10 @@ public class Controller {
                 List<Message> messages = null;
                 try {
                     messages = simpleMessageQueue.consumeMessageOfApplication(serialNumber, appID, Integer.valueOf(messageAmount));
+                } catch (PoolingQueueException e) {
+                    //e.printStackTrace();
+                    LOGGER.error("Unable to consume an application message from a nonexistent central [" + serialNumber + "].");
+                    tryingToCreateCentral(serialNumber);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -101,6 +110,10 @@ public class Controller {
         boolean produced = false;
         try {
             produced = simpleMessageQueue.produceMessageToCentral(serialNumber, message);
+        } catch (PoolingQueueException e) {
+            //e.printStackTrace();
+            LOGGER.error("Unable to produce an application message from a nonexistent central [" + serialNumber + "].");
+            tryingToCreateCentral(serialNumber);
         } catch (Exception e) {
             e.printStackTrace();
             LOGGER.error("Trying to create a central queue before resend the message.");
@@ -135,20 +148,26 @@ public class Controller {
                                      @RequestHeader(value = "Multicast", required = false) String multicast,
                                      @RequestBody String packet) {
 
-        if(broadcast != null) {
+        /**
+         * Message: SerialNumber, ApplicationID, Timestamp, Priority, Message
+         */
+        String timestamp = String.valueOf(new Date().getTime());
+        String priority = "10";
+        Message message = new Message(serialNumber, appID, timestamp, priority, packet);
 
+        if(broadcast != null) {
+            boolean broadcasted = simpleMessageQueue.broadcastMessageToApplication(serialNumber, appID, message);
         } else {
             // post message to single application-id
-            /**
-             * Message: SerialNumber, ApplicationID, Timestamp, Priority, Message
-             */
-            String timestamp = String.valueOf(new Date().getTime());
-            String priority = "10";
-            Message message = new Message(serialNumber, appID, timestamp, priority, packet);
+
             boolean produced = false;
             try {
                 produced = simpleMessageQueue.produceMessageToApplication(serialNumber, appID, message);
                 return new ResponseEntity<String>(produced ? "OK" : "ERROR", HttpStatus.OK);
+            } catch (PoolingQueueException e) {
+                //e.printStackTrace();
+                LOGGER.error("Unable to produce an application message to a nonexistent central [" + serialNumber + "].");
+                tryingToCreateCentral(serialNumber);
             } catch (Exception e) {
                 e.printStackTrace();
                 LOGGER.error("Trying to create a central queue before resend the message.");
@@ -179,11 +198,26 @@ public class Controller {
         Message message = null;
         try {
             message = simpleMessageQueue.consumeMessageOfCentral(serialNumber);
+        }  catch (PoolingQueueException e) {
+            //e.printStackTrace();
+            LOGGER.error("Unable to consume an application message from a nonexistent central [" + serialNumber + "].");
+            tryingToCreateCentral(serialNumber);
         } catch (Exception e) {
             e.printStackTrace();
         }
         return new ResponseEntity<String>(message == null ? "{}" : new Gson().toJson(message), HttpStatus.OK);
     }
 
+
+    private void tryingToCreateCentral(final String serialNumber) {
+            LOGGER.error("Unable to consume an application message from a nonexistent central [" + serialNumber + "].");
+            try {
+                LOGGER.info("Trying to create a central [" + serialNumber + "].");
+                simpleMessageQueue.createPoolingQueue(serialNumber);
+            } catch (Exception e1) {
+                LOGGER.error("It failed miserably in creating a new central [" + serialNumber + "].");
+                e1.printStackTrace();
+            }
+    }
 
 }

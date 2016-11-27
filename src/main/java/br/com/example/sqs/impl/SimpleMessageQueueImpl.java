@@ -101,6 +101,16 @@ public class SimpleMessageQueueImpl implements SimpleMessageQueue {
         throw new PoolingQueueException("Central [" + centralName + "] does not exist.", CENTRAL_NOT_FOUND);
     }
 
+    @Override
+    public boolean broadcastMessageToApplication(String centralName, String applicationId, Message message) throws Exception {
+        synchronized (poolingQueueLock) {
+            if(poolingQueueMap.containsKey(centralName)) {
+                return poolingQueueMap.get(centralName).broadcastMessageToApplication(applicationId, message);
+            }
+        }
+        throw new PoolingQueueException("Central [" + centralName + "] does not exist.", CENTRAL_NOT_FOUND);
+    }
+
     public Message peekMessageOfApplication(final String centralName, final String applicationId) throws Exception {
         synchronized (poolingQueueLock) {
             if(poolingQueueMap.containsKey(centralName)) {
@@ -127,4 +137,5 @@ public class SimpleMessageQueueImpl implements SimpleMessageQueue {
         }
         throw new PoolingQueueException("Central [" + centralName + "] does not exist.", CENTRAL_NOT_FOUND);
     }
+
 }

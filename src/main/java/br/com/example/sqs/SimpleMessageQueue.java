@@ -24,6 +24,8 @@ public interface SimpleMessageQueue {
 
     boolean produceMessageToApplication(final String centralName, final String applicationId, Message message) throws Exception;
 
+    boolean broadcastMessageToApplication(String centralName, String applicationId, Message message) throws Exception;
+
     Message peekMessageOfApplication(final String centralName, final String applicationId) throws Exception;
 
     Message consumeMessageOfApplication(final String centralName, final String applicationId) throws Exception;

@@ -23,6 +23,8 @@ public interface IPoolingQueue {
 
     boolean produceMessageToApplication(final String applicationId, final Message message) throws Exception;
 
+    boolean broadcastMessageToApplication(final String applicationIdOrigin, final Message message) throws Exception;
+
     Message peekMessageOfApplication(final String applicationId) throws Exception;
 
     Message consumeMessageOfApplication(final String applicationId) throws Exception;

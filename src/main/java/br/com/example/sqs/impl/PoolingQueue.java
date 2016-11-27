@@ -88,15 +88,39 @@ public class PoolingQueue implements IPoolingQueue {
                 LOGGER.info("Application queue [" + applicationId + "] has " + applicationQueues.get(applicationId).size() + " messages");
                 return produced;
             } else {
-                Queue<Message> newApplicationQueue = new LinkedBlockingQueue<>();
-                boolean wasMessageAdded = newApplicationQueue.add(message);
-                LOGGER.info("Application queue [" + applicationId + "] has " + newApplicationQueue.size() + " messages");
-                if(applicationQueues.put(applicationId, newApplicationQueue) == null) {
-                    LOGGER.info("There wasn't a previously queue with applicationId " + applicationId);
-                }
-                return wasMessageAdded;
+                return createApplicationQueueAndTrySendMessage(applicationId, message);
             }
         }
+    }
+
+    private boolean createApplicationQueueAndTrySendMessage(final String applicationId, final Message message) {
+        Queue<Message> newApplicationQueue = new LinkedBlockingQueue<>();
+        boolean wasMessageAdded = newApplicationQueue.add(message);
+        LOGGER.info("Application queue [" + applicationId + "] has " + newApplicationQueue.size() + " messages");
+        if (applicationQueues.put(applicationId, newApplicationQueue) == null) {
+            LOGGER.info("There wasn't a previously queue with applicationId " + applicationId);
+        }
+        return wasMessageAdded;
+    }
+
+    @Override
+    public boolean broadcastMessageToApplication(final String applicationIdOrigin, final Message message) throws Exception {
+        validateQueueName();
+        synchronized (applicationLock) {
+            boolean containsApplicationId = false;
+            Iterator<String> applicationQueuesIterator = applicationQueues.keySet().iterator();
+            while(applicationQueuesIterator.hasNext()) {
+                final String applicationQueueName = applicationQueuesIterator.next();
+                if(applicationIdOrigin.equals(applicationQueueName)) {
+                    containsApplicationId = true;
+                }
+                applicationQueues.get(applicationQueueName).add(message);
+            }
+            if(!containsApplicationId) {
+                createApplicationQueueAndTrySendMessage(applicationIdOrigin, message);
+            }
+        }
+        return true;
     }
 
     public Message peekMessageOfApplication(final String applicationId) throws Exception {
