@@ -108,19 +108,22 @@ public class PoolingQueue implements IPoolingQueue {
         validateQueueName();
         synchronized (applicationLock) {
             boolean containsApplicationId = false;
+            boolean broadcasted = false;
             Iterator<String> applicationQueuesIterator = applicationQueues.keySet().iterator();
             while(applicationQueuesIterator.hasNext()) {
+                broadcasted = true;
                 final String applicationQueueName = applicationQueuesIterator.next();
                 if(applicationIdOrigin.equals(applicationQueueName)) {
                     containsApplicationId = true;
                 }
                 applicationQueues.get(applicationQueueName).add(message);
             }
-            if(!containsApplicationId) {
+            if(!containsApplicationId && applicationIdOrigin != null) {
                 createApplicationQueueAndTrySendMessage(applicationIdOrigin, message);
+                broadcasted = true;
             }
+            return broadcasted;
         }
-        return true;
     }
 
     public Message peekMessageOfApplication(final String applicationId) throws Exception {

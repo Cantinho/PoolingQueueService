@@ -117,6 +117,7 @@ public class AmazonPoolingQueue implements IPoolingQueue {
         checkAmazonSQSApiInstance();
         final String applicationIdQueueName = queueName + "_" + applicationIdOrigin;
         synchronized (applicationLock) {
+            boolean broadcasted = false;
             boolean applicationIdOriginFound = amazonSQSApi.listQueues().contains(applicationIdQueueName);;
             List<String> allApplicationQueueNames = amazonSQSApi.listQueues();
             List<String> applicationQueueNamesFound = new ArrayList<>();
@@ -132,9 +133,13 @@ public class AmazonPoolingQueue implements IPoolingQueue {
             }
             Iterator<String> applicationNamesFoundIterator = applicationQueueNamesFound.iterator();
             while(applicationNamesFoundIterator.hasNext()) {
+                broadcasted = true;
                 amazonSQSApi.sendMessage(applicationIdQueueName, message);
             }
-            return sendMessage(applicationIdOrigin, applicationIdOriginFound, message);
+            if(applicationIdOrigin != null) {
+                broadcasted = sendMessage(applicationIdOrigin, applicationIdOriginFound, message);
+            }
+            return broadcasted;
         }
     }
 
