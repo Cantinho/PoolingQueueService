@@ -3,6 +3,9 @@ package br.com.example.controllers;
 import br.com.example.bean.Message;
 import br.com.example.exceptions.PoolingQueueException;
 import br.com.example.sqs.SimpleMessageQueue;
+import br.com.example.statistics.IRequestStatisticallyProfilable;
+import br.com.example.statistics.IStatistics;
+import br.com.example.statistics.PoolingQueueServiceStatistic;
 import com.google.gson.Gson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,8 +16,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.PostConstruct;
+import java.util.ArrayList;
 import java.util.Date;
-import java.util.EmptyStackException;
 import java.util.List;
 
 /**
@@ -23,9 +26,11 @@ import java.util.List;
 
 @RestController
 @ComponentScan("br.com.example")
-public class Controller {
+public class Controller implements IRequestStatisticallyProfilable {
 
     private final Logger LOGGER = LoggerFactory.getLogger(Controller.class);
+
+    private List<IStatistics> poolingQueueServiceStatistics = new ArrayList<>();
 
     @Autowired
     private SimpleMessageQueue simpleMessageQueue;
@@ -68,8 +73,9 @@ public class Controller {
                                      @RequestHeader(value = "Message-Amount", required = false) String messageAmount,
                                      @RequestBody(required = false) String packet) {
 
-        Gson gson = new Gson();
+        long startTimestamp = new Date().getTime();
 
+        Gson gson = new Gson();
         if (packet == null) {
             LOGGER.info("packet nulo");
             if(messageAmount == null) {
@@ -91,6 +97,10 @@ public class Controller {
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
+
+                long endTimestamp = new Date().getTime();
+                addPollingQueueServiceStatistic(startTimestamp, endTimestamp, "pa_pull", "Slave pulling only one message.");
+
                 return new ResponseEntity<String>(gson.toJson(message), HttpStatus.OK);
             } else {
                 LOGGER.info("messageAmount:"+messageAmount);
@@ -111,6 +121,10 @@ public class Controller {
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
+
+                long endTimestamp = new Date().getTime();
+                addPollingQueueServiceStatistic(startTimestamp, endTimestamp, "pa_pull", "Slave pulling multiple messages.");
+
                 return new ResponseEntity<String>(gson.toJson(messages), HttpStatus.OK);
             }
         }
@@ -139,6 +153,9 @@ public class Controller {
             e.printStackTrace();
         }
 
+        long endTimestamp = new Date().getTime();
+        addPollingQueueServiceStatistic(startTimestamp, endTimestamp, "pa_post", "Slave posting.");
+
         return new ResponseEntity<String>(produced ? "OK" : "ERROR", HttpStatus.OK);
 
 
@@ -162,6 +179,8 @@ public class Controller {
                                      @RequestHeader(value = "Multicast", required = false) String multicast,
                                      @RequestBody String packet) {
 
+        long startTimestamp = new Date().getTime();
+
         /**
          * Message: SerialNumber, ApplicationID, Timestamp, Priority, Message
          */
@@ -176,6 +195,10 @@ public class Controller {
             } catch (Exception e) {
                 e.printStackTrace();
             }
+
+            long endTimestamp = new Date().getTime();
+            addPollingQueueServiceStatistic(startTimestamp, endTimestamp, "pc_post", "Master posting in broadcast mode.");
+
             return new ResponseEntity<String>(broadcasted ? "OK" : "ERROR", HttpStatus.OK);
         } else {
             // post message to single application-id
@@ -183,6 +206,8 @@ public class Controller {
             boolean produced = false;
             try {
                 produced = simpleMessageQueue.produceMessageToApplication(serialNumber, appID, message);
+                long endTimestamp = new Date().getTime();
+
                 return new ResponseEntity<String>(produced ? "OK" : "ERROR", HttpStatus.OK);
             } catch (PoolingQueueException e) {
                 //e.printStackTrace();
@@ -193,6 +218,10 @@ public class Controller {
             } catch (Exception e) {
                 e.printStackTrace();
             }
+
+            long endTimestamp = new Date().getTime();
+            addPollingQueueServiceStatistic(startTimestamp, endTimestamp, "pc_post", "Master posting for only one Slave.");
+
             return new ResponseEntity<String>(produced ? "OK" : "ERROR", HttpStatus.OK);
         }
     }
@@ -200,7 +229,9 @@ public class Controller {
     @RequestMapping(value = "/pull", method = RequestMethod.GET)
     public ResponseEntity<String> pull(@RequestHeader(value = "Serial-Number") String serialNumber) {
 
-        /* espera-se que o servico em nuvem leia a pilha do sqs e retorne uma resposta para aquela central
+        long startTimestamp = new Date().getTime();
+
+        /** espera-se que o servico em nuvem leia a pilha do sqs e retorne uma resposta para aquela central
          *
          * responseHeaders:
          *      "Serial-Number"
@@ -221,6 +252,10 @@ public class Controller {
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+        long endTimestamp = new Date().getTime();
+        addPollingQueueServiceStatistic(startTimestamp, endTimestamp, "pc_pull", "Master pulling.");
+
         return new ResponseEntity<String>(message == null ? "{}" : new Gson().toJson(message), HttpStatus.OK);
     }
 
@@ -236,4 +271,14 @@ public class Controller {
             }
     }
 
+    private void addPollingQueueServiceStatistic(long startTimestamp, long endTimestamp, String label, String message){
+        long totalTime = endTimestamp - startTimestamp;
+        PoolingQueueServiceStatistic poolingQueueServiceStatistic = new PoolingQueueServiceStatistic(label, totalTime, message);
+        poolingQueueServiceStatistics.add(poolingQueueServiceStatistic);
+    }
+
+    @Override
+    public List<IStatistics> collectStatistics() {
+        return poolingQueueServiceStatistics;
+    }
 }
