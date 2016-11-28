@@ -277,8 +277,15 @@ public class Controller implements IRequestStatisticallyProfilable {
         poolingQueueServiceStatistics.add(poolingQueueServiceStatistic);
     }
 
+
     @Override
     public List<IStatistics> collectStatistics() {
         return poolingQueueServiceStatistics;
+    }
+
+    @RequestMapping(value = "/statistics", method = RequestMethod.GET)
+    public ResponseEntity<String> statistics() {
+        System.out.println(collectStatistics());
+        return new ResponseEntity<String>("OK", HttpStatus.OK);
     }
 }
