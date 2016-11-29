@@ -11,8 +11,13 @@ public interface IStatistics {
 
     String getMessage();
 
+    long getStartTime();
+
+    long getEndTime();
+
     long getTotalTime();
 
     String print(boolean messageSuppressed);
 
+    String mapToCSV(boolean messageSuppressed);
 }

@@ -272,8 +272,7 @@ public class Controller implements IRequestStatisticallyProfilable {
     }
 
     private void addPollingQueueServiceStatistic(long startTimestamp, long endTimestamp, String label, String message){
-        long totalTime = endTimestamp - startTimestamp;
-        PoolingQueueServiceStatistic poolingQueueServiceStatistic = new PoolingQueueServiceStatistic(label, totalTime, message);
+        PoolingQueueServiceStatistic poolingQueueServiceStatistic = new PoolingQueueServiceStatistic(label, startTimestamp, endTimestamp, message);
         poolingQueueServiceStatistics.add(poolingQueueServiceStatistic);
     }
 
@@ -285,7 +284,8 @@ public class Controller implements IRequestStatisticallyProfilable {
 
     @RequestMapping(value = "/statistics", method = RequestMethod.GET)
     public ResponseEntity<String> statistics() {
-        System.out.println(collectStatistics());
-        return new ResponseEntity<String>("OK", HttpStatus.OK);
+        List<IStatistics> statistics = collectStatistics();
+        System.out.println(statistics);
+        return new ResponseEntity<String>(statistics.toString(), HttpStatus.OK);
     }
 }
