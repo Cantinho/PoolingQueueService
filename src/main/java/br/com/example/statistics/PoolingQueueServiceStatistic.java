@@ -16,7 +16,9 @@ public class PoolingQueueServiceStatistic implements IStatistics {
     private String message;
 
     public PoolingQueueServiceStatistic(String label, long startTime, long endTime, String message) {
-        this.sequence = globalSequence++;
+        synchronized (PoolingQueueServiceStatistic.class) {
+            this.sequence = globalSequence++;
+        }
         this.label = label;
         this.startTime = startTime;
         this.endTime = endTime;
