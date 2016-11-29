@@ -19,5 +19,5 @@ public interface IStatistics {
 
     String print(boolean messageSuppressed);
 
-    String mapToCSV(boolean messageSuppressed);
+    String csv(boolean messageSuppressed);
 }

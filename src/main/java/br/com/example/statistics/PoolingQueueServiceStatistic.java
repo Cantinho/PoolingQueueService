@@ -68,16 +68,18 @@ public class PoolingQueueServiceStatistic implements IStatistics {
         stringBuilder.append("]");
         return stringBuilder.toString();
     }
-    /*** Sequence; StartTime; EndTime; TotalTime; Label; Message
-         00005; normal; normal; 000005; normal; normal */
 
-    public String mapToCSV(boolean messageSuppressed){
+    /**
+     *  Sequence; StartTime; EndTime; TotalTime; Label;  Message
+     *  00005;    normal;    normal;  000005;    normal; normal
+     */
+    public String csv(boolean messageSuppressed){
         StringBuilder builder = new StringBuilder();
-        builder.append(String.format("%06d; ", sequence));
-        builder.append(String.format("%d; ", startTime));
-        builder.append(String.format("%d; ", endTime));
-        builder.append(String.format("%06d; ", (endTime-startTime)));
-        builder.append(label + "; ");
+        builder.append(String.format("%06d;", sequence));
+        builder.append(String.format("%d;", startTime));
+        builder.append(String.format("%d;", endTime));
+        builder.append(String.format("%06d;", (endTime-startTime)));
+        builder.append(label + ";");
         builder.append(message);
 
         return builder.toString();
@@ -85,6 +87,6 @@ public class PoolingQueueServiceStatistic implements IStatistics {
 
     @Override
     public String toString() {
-        return mapToCSV(false);
+        return csv(false);
     }
 }

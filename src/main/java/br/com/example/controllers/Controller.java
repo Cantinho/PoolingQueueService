@@ -99,7 +99,7 @@ public class Controller implements IRequestStatisticallyProfilable {
                 }
 
                 long endTimestamp = new Date().getTime();
-                addPollingQueueServiceStatistic(startTimestamp, endTimestamp, "pa_pull", "Slave pulling only one message.");
+                addPollingQueueServiceStatistic(startTimestamp, endTimestamp, serialNumber + "_" + appID, "pa-pull");
 
                 return new ResponseEntity<String>(gson.toJson(message), HttpStatus.OK);
             } else {
@@ -123,7 +123,7 @@ public class Controller implements IRequestStatisticallyProfilable {
                 }
 
                 long endTimestamp = new Date().getTime();
-                addPollingQueueServiceStatistic(startTimestamp, endTimestamp, "pa_pull", "Slave pulling multiple messages.");
+                addPollingQueueServiceStatistic(startTimestamp, endTimestamp, serialNumber + "_" + appID, "pa-pull");
 
                 return new ResponseEntity<String>(gson.toJson(messages), HttpStatus.OK);
             }
@@ -154,7 +154,7 @@ public class Controller implements IRequestStatisticallyProfilable {
         }
 
         long endTimestamp = new Date().getTime();
-        addPollingQueueServiceStatistic(startTimestamp, endTimestamp, "pa_post", "Slave posting.");
+        addPollingQueueServiceStatistic(startTimestamp, endTimestamp, serialNumber + "_" + appID, "pa-post");
 
         return new ResponseEntity<String>(produced ? "OK" : "ERROR", HttpStatus.OK);
 
@@ -197,7 +197,7 @@ public class Controller implements IRequestStatisticallyProfilable {
             }
 
             long endTimestamp = new Date().getTime();
-            addPollingQueueServiceStatistic(startTimestamp, endTimestamp, "pc_post", "Master posting in broadcast mode.");
+            addPollingQueueServiceStatistic(startTimestamp, endTimestamp, serialNumber + "_" + appID, "pc");
 
             return new ResponseEntity<String>(broadcasted ? "OK" : "ERROR", HttpStatus.OK);
         } else {
@@ -220,7 +220,7 @@ public class Controller implements IRequestStatisticallyProfilable {
             }
 
             long endTimestamp = new Date().getTime();
-            addPollingQueueServiceStatistic(startTimestamp, endTimestamp, "pc_post", "Master posting for only one Slave.");
+            addPollingQueueServiceStatistic(startTimestamp, endTimestamp, serialNumber + "_" + appID, "pc");
 
             return new ResponseEntity<String>(produced ? "OK" : "ERROR", HttpStatus.OK);
         }
@@ -254,7 +254,7 @@ public class Controller implements IRequestStatisticallyProfilable {
         }
 
         long endTimestamp = new Date().getTime();
-        addPollingQueueServiceStatistic(startTimestamp, endTimestamp, "pc_pull", "Master pulling.");
+        addPollingQueueServiceStatistic(startTimestamp, endTimestamp, serialNumber, "pull");
 
         return new ResponseEntity<String>(message == null ? "{}" : new Gson().toJson(message), HttpStatus.OK);
     }
@@ -285,7 +285,11 @@ public class Controller implements IRequestStatisticallyProfilable {
     @RequestMapping(value = "/statistics", method = RequestMethod.GET)
     public ResponseEntity<String> statistics() {
         List<IStatistics> statistics = collectStatistics();
-        System.out.println(statistics);
-        return new ResponseEntity<String>(statistics.toString(), HttpStatus.OK);
+        StringBuilder builder = new StringBuilder();
+        for(IStatistics statistic : statistics){
+            builder.append(statistic.toString() + "\n");
+        }
+        System.out.println(builder.toString());
+        return new ResponseEntity<String>(builder.toString(), HttpStatus.OK);
     }
 }
