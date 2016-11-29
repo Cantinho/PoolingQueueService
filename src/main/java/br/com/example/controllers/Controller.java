@@ -207,6 +207,7 @@ public class Controller implements IRequestStatisticallyProfilable {
             try {
                 produced = simpleMessageQueue.produceMessageToApplication(serialNumber, appID, message);
                 long endTimestamp = new Date().getTime();
+                addPollingQueueServiceStatistic(startTimestamp, endTimestamp, serialNumber + "_" + appID, "pc");
 
                 return new ResponseEntity<String>(produced ? "OK" : "ERROR", HttpStatus.OK);
             } catch (PoolingQueueException e) {
