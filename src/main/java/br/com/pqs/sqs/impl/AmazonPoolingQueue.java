@@ -1,12 +1,10 @@
-package br.com.example.sqs.impl;
+package br.com.pqs.sqs.impl;
 
-import br.com.example.bean.Message;
+import br.com.pqs.bean.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * Created by samirtf on 27/11/16.

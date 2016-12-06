@@ -1,4 +1,4 @@
-package br.com.example.bean;
+package br.com.pqs.bean;
 
 /**
  * Created by jordaoesa on 25/11/16.

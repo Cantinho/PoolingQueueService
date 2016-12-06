@@ -1,7 +1,6 @@
-package br.com.example.sqs;
+package br.com.pqs.sqs;
 
-import br.com.example.bean.Message;
-import br.com.example.sqs.impl.IPoolingQueue;
+import br.com.pqs.bean.Message;
 
 import java.util.List;
 

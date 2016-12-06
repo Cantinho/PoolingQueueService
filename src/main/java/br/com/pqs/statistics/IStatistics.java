@@ -1,4 +1,4 @@
-package br.com.example.statistics;
+package br.com.pqs.statistics;
 
 /**
  * Created by jordaoesa on 28/11/16.
