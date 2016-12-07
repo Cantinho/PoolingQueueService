@@ -56,7 +56,9 @@ public class Controller implements IRequestStatisticallyProfilable {
      * responseBody:
      * if header Message-Amount do request não existe, recebe-se até 1 mensagem.
      * messages:[
-     * {P:""}
+     * {    id: 12345321,
+     *      P:""
+     * }
      * ] or
      * if existe header Message-Amount, recebe-se até N mensagens.
      * messages:[
@@ -85,7 +87,7 @@ public class Controller implements IRequestStatisticallyProfilable {
                     message = simpleMessageQueue.consumeMessageOfApplication(serialNumber, appID);
                 } catch (PoolingQueueException e) {
                     //e.printStackTrace();
-                    LOGGER.error("Unable to consume an application message from a nonexistent central [" + serialNumber + "].");
+                    LOGGER.error("Unable to consume an application message from a central [" + serialNumber + "]. CODE: " + e.getCode());
                     if(e.getCode() == PoolingQueueException.CENTRAL_NOT_FOUND) {
                         tryingToCreateCentral(serialNumber);
                         try {
@@ -93,7 +95,7 @@ public class Controller implements IRequestStatisticallyProfilable {
                         } catch (Exception e1) {
                             e1.printStackTrace();
                         }
-                    }
+                    }//TODO olha aqui
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -103,13 +105,13 @@ public class Controller implements IRequestStatisticallyProfilable {
 
                 return new ResponseEntity<String>(gson.toJson(message), HttpStatus.OK);
             } else {
-                LOGGER.info("messageAmount:"+messageAmount);
+                LOGGER.info("messageAmount:" + messageAmount);
                 List<Message> messages = null;
                 try {
                     messages = simpleMessageQueue.consumeMessageOfApplication(serialNumber, appID, Integer.valueOf(messageAmount));
                 } catch (PoolingQueueException e) {
                     //e.printStackTrace();
-                    LOGGER.error("Unable to consume an application message from a nonexistent central [" + serialNumber + "].");
+                    LOGGER.error("Unable to consume an application message from a central [" + serialNumber + "].");
                     if(e.getCode() == PoolingQueueException.CENTRAL_NOT_FOUND) {
                         tryingToCreateCentral(serialNumber);
                         try {
@@ -117,6 +119,8 @@ public class Controller implements IRequestStatisticallyProfilable {
                         } catch (Exception e1) {
                             e1.printStackTrace();
                         }
+                    } else if (e.getCode() == PoolingQueueException.APPLICATION_NOT_FOUND) {
+
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -140,7 +144,7 @@ public class Controller implements IRequestStatisticallyProfilable {
             produced = simpleMessageQueue.produceMessageToCentral(serialNumber, message);
         } catch (PoolingQueueException e) {
             //e.printStackTrace();
-            LOGGER.error("Unable to produce an application message from a nonexistent central [" + serialNumber + "].");
+            LOGGER.error("Unable to produce an application message to a central [" + serialNumber + "].");
             if(e.getCode() == PoolingQueueException.CENTRAL_NOT_FOUND) {
                 tryingToCreateCentral(serialNumber);
                 try {
@@ -157,8 +161,6 @@ public class Controller implements IRequestStatisticallyProfilable {
         addPollingQueueServiceStatistic(startTimestamp, endTimestamp, serialNumber + "_" + appID, "pa-post");
 
         return new ResponseEntity<String>(produced ? "OK" : "ERROR", HttpStatus.OK);
-
-
     }
 
     /**
@@ -168,7 +170,6 @@ public class Controller implements IRequestStatisticallyProfilable {
      * @param serialNumber
      * @param appID
      * @param broadcast
-     * @param multicast
      * @param packet
      * @return
      */
@@ -176,7 +177,6 @@ public class Controller implements IRequestStatisticallyProfilable {
     public ResponseEntity<String> pc(@RequestHeader(value = "Serial-Number") String serialNumber,
                                      @RequestHeader(value = "Application-ID") String appID,
                                      @RequestHeader(value = "Broadcast", required = false) String broadcast,
-                                     @RequestHeader(value = "Multicast", required = false) String multicast,
                                      @RequestBody String packet) {
 
         long startTimestamp = new Date().getTime();
@@ -212,7 +212,7 @@ public class Controller implements IRequestStatisticallyProfilable {
                 return new ResponseEntity<String>(produced ? "OK" : "ERROR", HttpStatus.OK);
             } catch (PoolingQueueException e) {
                 //e.printStackTrace();
-                LOGGER.error("Unable to produce an application message to a nonexistent central [" + serialNumber + "].");
+                LOGGER.error("Unable to produce an application message to a nonexistent central [" + serialNumber +  "]. CODE: " + e.getCode());
                 if(e.getCode() == PoolingQueueException.CENTRAL_NOT_FOUND) {
                     tryingToCreateCentral(serialNumber);
                 }
@@ -246,8 +246,8 @@ public class Controller implements IRequestStatisticallyProfilable {
             message = simpleMessageQueue.consumeMessageOfCentral(serialNumber);
         }  catch (PoolingQueueException e) {
             //e.printStackTrace();
-            LOGGER.error("Unable to consume an application message from a nonexistent central [" + serialNumber + "].");
             if(e.getCode() == PoolingQueueException.CENTRAL_NOT_FOUND) {
+                LOGGER.error("Unable to consume an application message from a nonexistent central [" + serialNumber + "]. CODE: " + e.getCode());
                 tryingToCreateCentral(serialNumber);
             }
         } catch (Exception e) {
@@ -262,7 +262,6 @@ public class Controller implements IRequestStatisticallyProfilable {
 
 
     private void tryingToCreateCentral(final String serialNumber) {
-            LOGGER.error("Unable to consume an application message from a nonexistent central [" + serialNumber + "].");
             try {
                 LOGGER.info("Trying to create a central [" + serialNumber + "].");
                 simpleMessageQueue.createPoolingQueue(serialNumber);
