@@ -1,6 +1,4 @@
-package br.com.example.exceptions;
-
-import br.com.example.sqs.impl.PoolingQueue;
+package br.com.pqs.exceptions;
 
 /**
  * Created by samirtf on 27/11/16.

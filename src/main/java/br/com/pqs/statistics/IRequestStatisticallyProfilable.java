@@ -1,4 +1,4 @@
-package br.com.example.statistics;
+package br.com.pqs.statistics;
 
 import java.util.List;
 

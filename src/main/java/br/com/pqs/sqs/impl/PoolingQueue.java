@@ -1,14 +1,14 @@
-package br.com.example.sqs.impl;
+package br.com.pqs.sqs.impl;
 
-import br.com.example.bean.Message;
-import br.com.example.exceptions.PoolingQueueException;
+import br.com.pqs.bean.Message;
+import br.com.pqs.exceptions.PoolingQueueException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import static br.com.example.exceptions.PoolingQueueException.APPLICATION_NOT_FOUND;
+import static br.com.pqs.exceptions.PoolingQueueException.APPLICATION_NOT_FOUND;
 
 /**
  * Created by samirtf on 26/11/16.

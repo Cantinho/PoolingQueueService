@@ -1,8 +1,8 @@
-package br.com.example.sqs.impl;
+package br.com.pqs.sqs.impl;
 
-import br.com.example.bean.Message;
-import br.com.example.exceptions.PoolingQueueException;
-import br.com.example.sqs.SimpleMessageQueue;
+import br.com.pqs.bean.Message;
+import br.com.pqs.exceptions.PoolingQueueException;
+import br.com.pqs.sqs.SimpleMessageQueue;
 import org.apache.commons.lang3.NotImplementedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.*;
 
-import static br.com.example.exceptions.PoolingQueueException.CENTRAL_NOT_FOUND;
+import static br.com.pqs.exceptions.PoolingQueueException.CENTRAL_NOT_FOUND;
 
 /**
  * Created by jordaoesa on 25/11/16.

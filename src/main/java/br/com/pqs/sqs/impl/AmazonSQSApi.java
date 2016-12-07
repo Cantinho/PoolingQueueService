@@ -1,6 +1,6 @@
-package br.com.example.sqs.impl;
+package br.com.pqs.sqs.impl;
 
-import br.com.example.bean.Message;
+import br.com.pqs.bean.Message;
 
 import java.util.List;
 

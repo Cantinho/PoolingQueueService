@@ -1,11 +1,11 @@
-package br.com.example.controllers;
+package br.com.pqs.controllers;
 
-import br.com.example.bean.Message;
-import br.com.example.exceptions.PoolingQueueException;
-import br.com.example.sqs.SimpleMessageQueue;
-import br.com.example.statistics.IRequestStatisticallyProfilable;
-import br.com.example.statistics.IStatistics;
-import br.com.example.statistics.PoolingQueueServiceStatistic;
+import br.com.pqs.bean.Message;
+import br.com.pqs.exceptions.PoolingQueueException;
+import br.com.pqs.sqs.SimpleMessageQueue;
+import br.com.pqs.statistics.IRequestStatisticallyProfilable;
+import br.com.pqs.statistics.IStatistics;
+import br.com.pqs.statistics.PoolingQueueServiceStatistic;
 import com.google.gson.Gson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,7 +25,7 @@ import java.util.List;
  */
 
 @RestController
-@ComponentScan("br.com.example")
+@ComponentScan("br.com.pqs")
 public class Controller implements IRequestStatisticallyProfilable {
 
     private final Logger LOGGER = LoggerFactory.getLogger(Controller.class);

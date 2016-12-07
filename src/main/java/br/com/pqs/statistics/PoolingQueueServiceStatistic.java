@@ -1,6 +1,4 @@
-package br.com.example.statistics;
-
-import com.sun.javafx.binding.StringFormatter;
+package br.com.pqs.statistics;
 
 /**
  * Created by jordaoesa on 28/11/16.

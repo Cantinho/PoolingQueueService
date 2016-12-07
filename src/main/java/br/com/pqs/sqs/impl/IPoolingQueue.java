@@ -1,12 +1,8 @@
-package br.com.example.sqs.impl;
+package br.com.pqs.sqs.impl;
 
-import br.com.example.bean.Message;
+import br.com.pqs.bean.Message;
 
-import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
-import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * Created by samirtf on 27/11/16.

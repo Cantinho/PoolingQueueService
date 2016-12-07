@@ -1,4 +1,4 @@
-package br.com.example.utils;
+package br.com.pqs.utils;
 
 /**
  * Created by jordaoesa on 25/11/16.

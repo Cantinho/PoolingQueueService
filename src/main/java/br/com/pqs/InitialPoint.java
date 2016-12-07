@@ -1,6 +1,6 @@
-package br.com.example;
+package br.com.pqs;
 
-import br.com.example.controllers.Controller;
+import br.com.pqs.controllers.Controller;
 import org.apache.catalina.connector.Connector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
