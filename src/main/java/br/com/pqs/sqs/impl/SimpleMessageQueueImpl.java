@@ -126,6 +126,7 @@ public class SimpleMessageQueueImpl implements SimpleMessageQueue {
                 return poolingQueueMap.get(centralName).consumeMessageOfApplication(applicationId);
             }
         }
+        LOGGER.info("Central [" + centralName + "] does not exist.");
         throw new PoolingQueueException("Central [" + centralName + "] does not exist.", CENTRAL_NOT_FOUND);
     }
 
