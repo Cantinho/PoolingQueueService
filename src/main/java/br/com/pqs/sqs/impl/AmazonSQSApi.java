@@ -1,6 +1,6 @@
 package br.com.pqs.sqs.impl;
 
-import br.com.pqs.bean.Message;
+import com.amazonaws.services.sqs.model.*;
 
 import java.util.List;
 
@@ -17,7 +17,7 @@ public interface AmazonSQSApi {
      * @param message
      * @return
      */
-    boolean sendMessage(String queueName, Message message);
+    SendMessageResult sendMessage(String queueName, String message);
 
     /**
      * Sends messages to an specific queue.
@@ -25,7 +25,7 @@ public interface AmazonSQSApi {
      * @param messages
      * @return
      */
-    boolean sendMessage(String queueName, List<Message> messages);
+    boolean sendMessage(String queueName, List<String> messages);
 
     /**
      * Receives up to {@param messageAcount } messages from an specific {@param queueName } queue.
@@ -36,28 +36,36 @@ public interface AmazonSQSApi {
     List<Message> receiveMessage(String queueName, int messageAmount);
 
     /**
+     * Receives messages from an specific {@param receiveMessageRequest } queue.
+     * @param receiveMessageRequest
+     * @return
+     */
+    List<Message> receiveMessage(ReceiveMessageRequest receiveMessageRequest);
+
+    /**
      * Deletes a previously received {@param message } from an specific queue.
      * @param queueName
      * @param message
      * @return
      */
-    boolean deleteMessage(String queueName, Message message);
+    DeleteMessageResult deleteMessage(String queueName, String message);
 
     /**
-     * Deletes previously received {@param messages } from an specific queue.
-     * @param queueName
-     * @param messages
+     * Deletes previously received {@param deleteMessageRequest } messages..
+     * @param deleteMessageRequest
      * @return
      */
-    List<Boolean> deleteMessage(String queueName, List<Message> messages);
+    public DeleteMessageResult deleteMessage(DeleteMessageRequest deleteMessageRequest);
 
     /**
-     * Change the vibility wait time of a previously received {@param message }
+     * Change the visibility wait time {@param visibilityTimeout } of a previously received {@param receiptHandle }
      * from specific queue {@param queueName }.
      * @param queueName
-     * @param message
+     * @param receiptHandle
+     * @param visibilityTimeout
      */
-    void changeMessageVisibility(String queueName, Message message);
+    ChangeMessageVisibilityResult changeMessageVisibility(String queueName, String receiptHandle,
+        final Integer visibilityTimeout);
 
 
 
@@ -68,25 +76,39 @@ public interface AmazonSQSApi {
      * @param queueName
      * @return
      */
-    boolean createQueue(String queueName);
+    CreateQueueResult createQueue(String queueName);
+
+    /**
+     * Creates a queue by {@param queueName }.
+     * @param createQueueRequest
+     * @return
+     */
+    CreateQueueResult createQueue(CreateQueueRequest createQueueRequest);
 
     /**
      * Lists existing queues.
      * @return
      */
-    List<String> listQueues();
+    ListQueuesResult listQueues();
 
     /**
      * Deletes a queue by {@param queueName }.
      * @param queueName
      * @return
      */
-    boolean deleteQueue(String queueName);
+    DeleteQueueResult deleteQueue(String queueName);
 
     /**
-     * Excludes all messages of an specific {@param queueName }.
-     * @param queueName
+     * Deletes a queue by {@param deleteQueueRequest }.
+     * @param deleteQueueRequest
+     * @return
      */
-    void purgeQueue(String queueName);
+    DeleteQueueResult deleteQueue(DeleteQueueRequest deleteQueueRequest);
+
+    /**
+     * Excludes all messages of an specific {@param purgeQueueRequest } queue.
+     * @param purgeQueueRequest
+     */
+    PurgeQueueResult purgeQueue(PurgeQueueRequest purgeQueueRequest);
 
 }
