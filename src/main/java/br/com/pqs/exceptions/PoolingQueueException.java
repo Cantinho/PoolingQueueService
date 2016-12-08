@@ -7,6 +7,7 @@ public class PoolingQueueException extends Exception {
 
     public static final int CENTRAL_NOT_FOUND = 400;
     public static final int APPLICATION_NOT_FOUND = 500;
+    public static final int INVALID_CONTENT_TYPE = 600;
 
     private int code;
 

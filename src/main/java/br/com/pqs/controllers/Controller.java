@@ -7,6 +7,7 @@ import br.com.pqs.statistics.IRequestStatisticallyProfilable;
 import br.com.pqs.statistics.IStatistics;
 import br.com.pqs.statistics.PoolingQueueServiceStatistic;
 import com.google.gson.Gson;
+import com.google.gson.JsonParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,6 +48,52 @@ public class Controller implements IRequestStatisticallyProfilable {
         return new ResponseEntity<String>("OK", HttpStatus.OK);
     }
 
+    @RequestMapping(value = "/sconn", method = RequestMethod.POST)
+    public ResponseEntity<String> sconn(@RequestHeader(value = "Serial-Number") String serialNumber,
+                                        @RequestHeader(value = "Application-ID") String applicationID,
+                                        @RequestHeader(value = "Content-Type") String contentType,
+                                        @RequestBody String packet) throws PoolingQueueException {
+
+        /**
+         * checking content type and throwing exception if necessary
+         */
+        if(!contentType.equals("application/json")) throw new PoolingQueueException("Content type should be 'application/json'", PoolingQueueException.INVALID_CONTENT_TYPE);
+
+        /**
+         * try to create a central to connect with
+         */
+
+        boolean produced = false;
+        String timestamp = String.valueOf(new Date().getTime());
+        String priority = "20";
+        Message message = new Message(serialNumber, applicationID, timestamp, priority, packet);
+        LOGGER.error(new Gson().toJson(message));
+        produced = false;
+        try {
+            produced = simpleMessageQueue.produceMessageToCentral(serialNumber, message);
+        } catch (PoolingQueueException e) {
+            LOGGER.error("Unable to connect to central [" + serialNumber + "].");
+            if(e.getCode() == PoolingQueueException.CENTRAL_NOT_FOUND) {
+                tryingToCreateCentral(serialNumber);
+                try {
+                    produced = simpleMessageQueue.produceMessageToCentral(serialNumber, message);
+                } catch (Exception e1) {
+                    e1.printStackTrace();
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        String received = null;
+        if(produced){
+            received = "RECEIVED";
+        }
+        LOGGER.error("------------- "+received);
+
+        return new ResponseEntity<String>(received, HttpStatus.OK);
+    }
+
     /**
      * if packet == NULL:
      * este comando deve ser tratado como pulling
@@ -83,6 +130,7 @@ public class Controller implements IRequestStatisticallyProfilable {
                 Message message = null;
                 try {
                     message = simpleMessageQueue.consumeMessageOfApplication(serialNumber, appID);
+                    LOGGER.error("MESSAGE: " + message);
                 } catch (PoolingQueueException e) {
                     //e.printStackTrace();
                     LOGGER.error("Unable to consume an application message from a nonexistent central [" + serialNumber + "].");
@@ -90,6 +138,7 @@ public class Controller implements IRequestStatisticallyProfilable {
                         tryingToCreateCentral(serialNumber);
                         try {
                             message = simpleMessageQueue.consumeMessageOfApplication(serialNumber, appID);
+                            LOGGER.error("MESSAGE: " + message);
                         } catch (Exception e1) {
                             e1.printStackTrace();
                         }
@@ -101,7 +150,7 @@ public class Controller implements IRequestStatisticallyProfilable {
                 long endTimestamp = new Date().getTime();
                 addPollingQueueServiceStatistic(startTimestamp, endTimestamp, serialNumber + "_" + appID, "pa-pull");
 
-                return new ResponseEntity<String>(gson.toJson(message), HttpStatus.OK);
+                return new ResponseEntity<String>(message == null ? "{}" : gson.toJson(message), HttpStatus.OK);
             } else {
                 LOGGER.info("messageAmount:"+messageAmount);
                 List<Message> messages = null;
@@ -125,7 +174,7 @@ public class Controller implements IRequestStatisticallyProfilable {
                 long endTimestamp = new Date().getTime();
                 addPollingQueueServiceStatistic(startTimestamp, endTimestamp, serialNumber + "_" + appID, "pa-pull");
 
-                return new ResponseEntity<String>(gson.toJson(messages), HttpStatus.OK);
+                return new ResponseEntity<String>(messages == null ? "{}" : gson.toJson(messages), HttpStatus.OK);
             }
         }
 
@@ -261,15 +310,17 @@ public class Controller implements IRequestStatisticallyProfilable {
     }
 
 
-    private void tryingToCreateCentral(final String serialNumber) {
-            LOGGER.error("Unable to consume an application message from a nonexistent central [" + serialNumber + "].");
-            try {
-                LOGGER.info("Trying to create a central [" + serialNumber + "].");
-                simpleMessageQueue.createPoolingQueue(serialNumber);
-            } catch (Exception e1) {
-                LOGGER.error("It failed miserably in creating a new central [" + serialNumber + "].");
-                e1.printStackTrace();
-            }
+    private boolean tryingToCreateCentral(final String serialNumber) {
+        LOGGER.error("Unable to consume an application message from a nonexistent central [" + serialNumber + "].");
+        try {
+            LOGGER.info("Trying to create a central [" + serialNumber + "].");
+            simpleMessageQueue.createPoolingQueue(serialNumber);
+            return true;
+        } catch (Exception e1) {
+            LOGGER.error("It failed miserably in creating a new central [" + serialNumber + "].");
+            e1.printStackTrace();
+            return false;
+        }
     }
 
     private void addPollingQueueServiceStatistic(long startTimestamp, long endTimestamp, String label, String message){
