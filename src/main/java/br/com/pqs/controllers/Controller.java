@@ -48,20 +48,20 @@ public class Controller implements IRequestStatisticallyProfilable {
         return new ResponseEntity<String>("OK", HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/sconn", method = RequestMethod.POST)
+    /*@RequestMapping(value = "/sconn", method = RequestMethod.POST)
     public ResponseEntity<String> sconn(@RequestHeader(value = "Serial-Number") String serialNumber,
                                         @RequestHeader(value = "Application-ID") String applicationID,
                                         @RequestHeader(value = "Content-Type") String contentType,
                                         @RequestBody String packet) throws PoolingQueueException {
 
-        /**
+        *//**
          * checking content type and throwing exception if necessary
-         */
+         *//*
         if(!contentType.equals("application/json")) throw new PoolingQueueException("Content type should be 'application/json'", PoolingQueueException.INVALID_CONTENT_TYPE);
 
-        /**
+        *//**
          * try to create a central to connect with
-         */
+         *//*
 
         boolean produced = false;
         String timestamp = String.valueOf(new Date().getTime());
@@ -94,7 +94,7 @@ public class Controller implements IRequestStatisticallyProfilable {
         return new ResponseEntity<String>(received, HttpStatus.OK);
     }
 
-    /**
+    *//**
      * if packet == NULL:
      * este comando deve ser tratado como pulling
      * <p>
@@ -115,7 +115,7 @@ public class Controller implements IRequestStatisticallyProfilable {
      * }
      * if {P:""}: nada na pilha para esta aplicacao
      * if {P:"mensagem hexadecimal"}: comando da central;
-     */
+     *//*
     @RequestMapping(value = "/pa", method = RequestMethod.POST)
     public ResponseEntity<String> pa(@RequestHeader(value = "Serial-Number") String serialNumber,
                                      @RequestHeader(value = "Application-ID") String appID,
@@ -182,9 +182,9 @@ public class Controller implements IRequestStatisticallyProfilable {
             }
         }
 
-        /**
+        *//**
          * Message: SerialNumber, ApplicationID, Timestamp, Priority, Message
-         */
+         *//*
         String timestamp = String.valueOf(new Date().getTime());
         String priority = "10";
         Message message = new Message(serialNumber, appID, timestamp, priority, packet);
@@ -212,7 +212,7 @@ public class Controller implements IRequestStatisticallyProfilable {
         return new ResponseEntity<String>(produced ? "OK" : "ERROR", HttpStatus.OK);
     }
 
-    /**
+    *//**
      * Post message to application or applications (broadcast) of the same serialNumber (central).
      * Header has a size limit. Maybe Multicast header have to be disabled.
      *
@@ -221,7 +221,7 @@ public class Controller implements IRequestStatisticallyProfilable {
      * @param broadcast
      * @param packet
      * @return
-     */
+     *//*
     @RequestMapping(value = "/pc", method = RequestMethod.POST)
     public ResponseEntity<String> pc(@RequestHeader(value = "Serial-Number") String serialNumber,
                                      @RequestHeader(value = "Application-ID") String appID,
@@ -230,9 +230,9 @@ public class Controller implements IRequestStatisticallyProfilable {
 
         long startTimestamp = new Date().getTime();
 
-        /**
+        *//**
          * Message: SerialNumber, ApplicationID, Timestamp, Priority, Message
-         */
+         *//*
         String timestamp = String.valueOf(new Date().getTime());
         String priority = "10";
         Message message = new Message(serialNumber, appID, timestamp, priority, packet);
@@ -281,14 +281,14 @@ public class Controller implements IRequestStatisticallyProfilable {
 
         long startTimestamp = new Date().getTime();
 
-        /** espera-se que o servico em nuvem leia a pilha do sqs e retorne uma resposta para aquela central
+        *//** espera-se que o servico em nuvem leia a pilha do sqs e retorne uma resposta para aquela central
          *
          * responseHeaders:
          *      "Serial-Number"
          *      "Application-ID"
          * responseBody:
          *      "packet"
-         */
+         *//*
 
         Message message = null;
         try {
@@ -324,7 +324,7 @@ public class Controller implements IRequestStatisticallyProfilable {
     private void addPollingQueueServiceStatistic(long startTimestamp, long endTimestamp, String label, String message){
         PoolingQueueServiceStatistic poolingQueueServiceStatistic = new PoolingQueueServiceStatistic(label, startTimestamp, endTimestamp, message);
         poolingQueueServiceStatistics.add(poolingQueueServiceStatistic);
-    }
+    }*/
 
 
     @Override

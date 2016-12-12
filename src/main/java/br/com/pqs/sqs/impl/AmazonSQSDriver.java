@@ -54,6 +54,18 @@ public class AmazonSQSDriver implements AmazonSQSApi {
         createCredentials(baseUrl);
     }
 
+    public String getBaseUrl() {
+        return baseUrl;
+    }
+
+    public String getAccountId() {
+        return accountId;
+    }
+
+    public String getQueueType() {
+        return queueType;
+    }
+
     private void createCredentials(final String baseUrl) {
         try {
             credentials = new ProfileCredentialsProvider().getCredentials();
@@ -72,7 +84,7 @@ public class AmazonSQSDriver implements AmazonSQSApi {
         LOGGER.info("=======================================================\n");
     }
 
-    private final String getQueueUrl(final String queueName) {
+    public synchronized final String getQueueUrl(final String queueName) {
         return baseUrl + "/" + accountId + "/" + queueName + "." + queueType;
     }
 
@@ -150,6 +162,15 @@ public class AmazonSQSDriver implements AmazonSQSApi {
         return null;
     }
 
+    public DeleteMessageBatchResult deleteMessageBatch(String queueName, List<DeleteMessageBatchRequestEntry> messageBatchRequestEntries) {
+        if(credentials != null && simpleQueueService != null) {
+            //LOGGER.info("SendMessage succeed with messageId " + messageId + ", sequence number " + sequenceNumber + "\n");
+            final String queueUrl = getQueueUrl(queueName);
+            return simpleQueueService.deleteMessageBatch(queueUrl, messageBatchRequestEntries);
+        }
+        return null;
+    }
+
     @Override
     public DeleteMessageResult deleteMessage(DeleteMessageRequest deleteMessageRequest) {
         if(credentials != null && simpleQueueService != null) {
@@ -202,6 +223,19 @@ public class AmazonSQSDriver implements AmazonSQSApi {
         if(credentials != null && simpleQueueService != null) {
             try {
                 return simpleQueueService.listQueues();
+            } catch (Exception e) {
+                LOGGER.info(e.getMessage());
+                return null;
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public ListQueuesResult listQueues(String prefixName) {
+        if(credentials != null && simpleQueueService != null) {
+            try {
+                return simpleQueueService.listQueues(prefixName);
             } catch (Exception e) {
                 LOGGER.info(e.getMessage());
                 return null;

@@ -59,4 +59,24 @@ public class Message {
     public void setMessage(String message) {
         Message = message;
     }
+
+    public static String parseToMinimalistString(final Message message) {
+        StringBuilder strBuilder = new StringBuilder();
+        strBuilder.append(message.getSerialNumber() + ";");
+        strBuilder.append(message.getApplicationID() + ";");
+        strBuilder.append(message.getTimestamp() + ";");
+        strBuilder.append(message.getPriority() + ";");
+        strBuilder.append(message.getMessage());
+
+        return strBuilder.toString();
+    }
+
+    public static Message parseMinimalistStringToMessage(final String message) throws Exception {
+        String[] parts = message.split(";");
+        if(parts.length == 5) {
+            return new br.com.pqs.bean.Message(parts[0], parts[1], parts[2], parts[3], parts[4]);
+        }
+        throw new Exception("Fail to parse minimalist string to Message");
+    }
+
 }

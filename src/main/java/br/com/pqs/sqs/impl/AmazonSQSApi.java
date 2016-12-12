@@ -9,6 +9,19 @@ import java.util.List;
  */
 public interface AmazonSQSApi {
 
+    String getBaseUrl();
+
+    String getAccountId();
+
+    String getQueueType();
+
+    /**
+     * Gets queue url by {@param queueName}.
+     * @param queueName
+     * @return
+     */
+    String getQueueUrl(final String queueName);
+
     /* Basic Single and Batch Message Operations */
 
     /**
@@ -51,6 +64,14 @@ public interface AmazonSQSApi {
     DeleteMessageResult deleteMessage(String queueName, String message);
 
     /**
+     * Deletes messages.
+     * @param queueName
+     * @param messageBatchRequestEntries
+     * @return
+     */
+    DeleteMessageBatchResult deleteMessageBatch(String queueName, List<DeleteMessageBatchRequestEntry> messageBatchRequestEntries);
+
+    /**
      * Deletes previously received {@param deleteMessageRequest } messages..
      * @param deleteMessageRequest
      * @return
@@ -90,6 +111,12 @@ public interface AmazonSQSApi {
      * @return
      */
     ListQueuesResult listQueues();
+
+    /**
+     * Lists existing queues starting with a prefix name.
+     * @return
+     */
+    ListQueuesResult listQueues(final String prefixName);
 
     /**
      * Deletes a queue by {@param queueName }.
