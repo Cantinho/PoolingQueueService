@@ -108,9 +108,8 @@ public class PoolingQueue implements IPoolingQueue {
         LOGGER.info("Application queue [" + applicationId + "] has " + newApplicationQueue.size() + " messages");
         if (applicationQueues.put(applicationId, newApplicationQueue) == null) {
             LOGGER.info("There wasn't a previously queue with applicationId " + applicationId);
-            return applicationId;
         }
-        return null;
+        return applicationId;
     }
 
     @Override
