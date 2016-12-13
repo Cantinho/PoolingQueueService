@@ -103,6 +103,16 @@ public class PoolingQueue implements IPoolingQueue {
         return wasMessageAdded;
     }
 
+    private String createApplicationQueue(final String applicationId) {
+        Queue<Message> newApplicationQueue = new LinkedBlockingQueue<>();
+        LOGGER.info("Application queue [" + applicationId + "] has " + newApplicationQueue.size() + " messages");
+        if (applicationQueues.put(applicationId, newApplicationQueue) == null) {
+            LOGGER.info("There wasn't a previously queue with applicationId " + applicationId);
+            return applicationId;
+        }
+        return null;
+    }
+
     @Override
     public boolean broadcastMessageToApplication(final String applicationIdOrigin, final Message message) throws Exception {
         validateQueueName();
@@ -111,6 +121,7 @@ public class PoolingQueue implements IPoolingQueue {
             boolean broadcasted = false;
             Iterator<String> applicationQueuesIterator = applicationQueues.keySet().iterator();
             while(applicationQueuesIterator.hasNext()) {
+                System.out.println();
                 broadcasted = true;
                 final String applicationQueueName = applicationQueuesIterator.next();
                 if(applicationIdOrigin != null && applicationIdOrigin.equals(applicationQueueName)) {
@@ -168,6 +179,18 @@ public class PoolingQueue implements IPoolingQueue {
             }
             LOGGER.info("Application queue [" + applicationId + "] has 0 messages");
             throw new PoolingQueueException("", APPLICATION_NOT_FOUND);
+        }
+    }
+
+    @Override
+    public synchronized String addApplicationPoolingQueue(String applicationID) throws Exception {
+        validateQueueName();
+        synchronized (applicationLock) {
+            String queueName = createApplicationQueue(applicationID);
+            if (queueName == null) {
+                throw new PoolingQueueException("", APPLICATION_NOT_FOUND);
+            }
+            return queueName;
         }
     }
 

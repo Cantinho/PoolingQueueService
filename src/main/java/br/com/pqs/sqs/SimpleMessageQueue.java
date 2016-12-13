@@ -1,6 +1,7 @@
 package br.com.pqs.sqs;
 
 import br.com.pqs.bean.Message;
+import br.com.pqs.exceptions.PoolingQueueException;
 
 import java.util.List;
 
@@ -31,4 +32,5 @@ public interface SimpleMessageQueue {
 
     List<Message> consumeMessageOfApplication(final String centralName, final String applicationId, final int amount) throws Exception;
 
+    String addApplicationPoolingQueue(String serialNumber, String applicationID) throws Exception;
 }

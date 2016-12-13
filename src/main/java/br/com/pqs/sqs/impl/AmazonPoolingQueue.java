@@ -257,4 +257,10 @@ public class AmazonPoolingQueue implements IPoolingQueue {
         return null; //TODO REMOVE THIS AFTER FIX ENTIRE METHOD
     }
 
+    @Override
+    public String addApplicationPoolingQueue(String applicationID) throws Exception {
+        //TODO FIXME PLEASE
+        return null;
+    }
+
 }

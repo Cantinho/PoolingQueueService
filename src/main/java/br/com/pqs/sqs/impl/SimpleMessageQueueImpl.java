@@ -143,4 +143,14 @@ public class SimpleMessageQueueImpl implements SimpleMessageQueue {
         throw new PoolingQueueException("Central [" + centralName + "] does not exist.", CENTRAL_NOT_FOUND);
     }
 
+    @Override
+    public String addApplicationPoolingQueue(String centralName, String applicationID) throws Exception {
+        synchronized (poolingQueueLock) {
+            if(poolingQueueMap.containsKey(centralName)) {
+                return poolingQueueMap.get(centralName).addApplicationPoolingQueue(applicationID);
+            }
+        }
+        throw new PoolingQueueException("Central [" + centralName + "] does not exist.", CENTRAL_NOT_FOUND);
+    }
+
 }

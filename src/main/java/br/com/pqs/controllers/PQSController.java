@@ -59,12 +59,8 @@ public class PQSController {
                                         @RequestHeader(value = "Content-Type") String contentType,
                                         @RequestBody MessageMapper message) {
 
-        if(applicationID == null) {
-            MessageMapper responseMessage = poolingQueueService.cpush(serialNumber, applicationID, broadcast, contentType, message);
-            return new ResponseEntity<String>(new Gson().toJson(responseMessage), HttpStatus.OK);
-        }
-
-        return new ResponseEntity<String>(new Gson().toJson(""), HttpStatus.OK);
+        MessageMapper responseMessage = poolingQueueService.cpush(serialNumber, applicationID, broadcast, contentType, message);
+        return new ResponseEntity<String>(new Gson().toJson(responseMessage), HttpStatus.OK);
     }
 
     @RequestMapping(value = "/aconn", method = RequestMethod.POST)

@@ -135,9 +135,17 @@ public class PoolingQueueServiceImpl implements PoolingQueueService {
     public MessageMapper aconn(String serialNumber, String applicationID, String contentType, MessageMapper message) {
 
         //TODO: should we try to create a queue to app?
+        //TODO Should I? Really?
+        //TODO Request STATUS
         MessageMapper returnMessage = new MessageMapper();
-        System.out.println("ACONN:[" + message.getMsg()+"]");
-        returnMessage.setMsg(iMessageProcessor.getStatusMessage(message.getMsg(), true));
+
+        try {
+            simpleMessageQueue.addApplicationPoolingQueue(serialNumber, applicationID);
+            returnMessage.setMsg(iMessageProcessor.getStatusMessage(message.getMsg(), true));
+        } catch (Exception e) {
+            returnMessage.setMsg(iMessageProcessor.getStatusMessage(message.getMsg(), false));
+            e.printStackTrace();
+        }
         return returnMessage;
     }
 

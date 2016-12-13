@@ -27,4 +27,5 @@ public interface IPoolingQueue {
 
     List<Message> consumeMessageOfApplication(final String applicationId, final int amount) throws Exception;
 
+    String addApplicationPoolingQueue(String applicationID) throws Exception;
 }
