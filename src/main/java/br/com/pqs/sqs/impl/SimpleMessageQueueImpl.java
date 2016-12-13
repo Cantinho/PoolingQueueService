@@ -35,6 +35,10 @@ public class SimpleMessageQueueImpl implements SimpleMessageQueue {
     }
 
     public void createPoolingQueue(final String queueName) throws Exception {
+        if(poolingQueueMap.containsKey(queueName)) {
+            LOGGER.info("PoolingQueue already exists [" + queueName + "].");
+            return;
+        }
         if(poolingQueueClassName != null && !poolingQueueClassName.trim().isEmpty()) {
           if(poolingQueueClassName.equals(AmazonPoolingQueue.class.getName())) {
               LOGGER.info("SimpleMessageQueueImpl instance creating a AmazonPoolingQueue.");
