@@ -104,10 +104,16 @@ public class PoolingQueue implements IPoolingQueue {
     }
 
     private String createApplicationQueue(final String applicationId) {
-        Queue<Message> newApplicationQueue = new LinkedBlockingQueue<>();
-        LOGGER.info("Application queue [" + applicationId + "] has " + newApplicationQueue.size() + " messages");
-        if (applicationQueues.put(applicationId, newApplicationQueue) == null) {
-            LOGGER.info("There wasn't a previously queue with applicationId " + applicationId);
+        synchronized (applicationLock) {
+            if(!applicationQueues.containsKey(applicationId)) {
+                Queue<Message> newApplicationQueue = new LinkedBlockingQueue<>();
+                LOGGER.info("Application queue [" + applicationId + "] has " + newApplicationQueue.size() + " messages");
+                if (applicationQueues.put(applicationId, newApplicationQueue) == null) {
+                    LOGGER.info("There wasn't a previously queue with applicationId " + applicationId);
+                }
+            }else{
+                LOGGER.info("Application queue [" + applicationId + "] already exists with [ " + applicationQueues.get(applicationId).size() + " ] messages");
+            }
         }
         return applicationId;
     }
