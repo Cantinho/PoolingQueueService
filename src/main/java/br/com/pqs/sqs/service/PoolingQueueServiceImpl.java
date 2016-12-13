@@ -3,13 +3,15 @@ package br.com.pqs.sqs.service;
 import br.com.pqs.bean.Message;
 import br.com.pqs.exceptions.PoolingQueueException;
 import br.com.pqs.sqs.SimpleMessageQueue;
-import br.com.pqs.sqs.impl.SimpleMessageQueueImpl;
 import br.com.pqs.sqs.model.MessageMapper;
+import br.com.processor.IMessageProcessor;
+import br.com.processor.SimpleMessageProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -25,14 +27,31 @@ public class PoolingQueueServiceImpl implements PoolingQueueService {
     @Autowired
     private SimpleMessageQueue simpleMessageQueue;
 
+    private IMessageProcessor iMessageProcessor;
+
+    @PostConstruct
+    void init() {
+        System.out.println("PoolingQueueServiceImpl - POST CONSTRUCT");
+        iMessageProcessor = new SimpleMessageProcessor();
+    }
+
+    @Override
+    public void setIMessageProcessor(IMessageProcessor iMessageProcessor) throws PoolingQueueException {
+        if(iMessageProcessor == null) {
+            throw new PoolingQueueException("iMessageProcessor must be not null");
+        }
+        this.iMessageProcessor = iMessageProcessor;
+    }
+
     @Override
     public MessageMapper cconn(String serialNumber, String contentType, MessageMapper messageMapper) {
         MessageMapper returnMessage = new MessageMapper();
-
+        System.out.println("MESSAGE MAPPER.GETMSG()" + messageMapper.getMsg());
         boolean connected = tryingToCreateCentral(serialNumber);
 
         returnMessage.setTp(1);
-        returnMessage.setMsg(connected ? "OK" : "ERROR");
+        System.out.println("CCONN -MSG WRAPPER :" + messageMapper.getMsg());
+        returnMessage.setMsg(iMessageProcessor.getStatusMessage(messageMapper.getMsg(), connected));
         return returnMessage;
     }
 
@@ -53,7 +72,7 @@ public class PoolingQueueServiceImpl implements PoolingQueueService {
 
         MessageMapper responseMessage = new MessageMapper();
         if(message == null){
-            responseMessage.setMsg("{}");
+            responseMessage.setMsg("");
         } else {
             responseMessage.setMsg(message.getMessage());
         }
@@ -77,26 +96,37 @@ public class PoolingQueueServiceImpl implements PoolingQueueService {
             } catch (Exception e) {
                 LOGGER.error(e.getMessage());
             }
-
-            responseMessage.setMsg(broadcasted ? "OK" : "ERROR");
+            responseMessage.setMsg(iMessageProcessor.getStatusMessage(messageMapper.getMsg(), broadcasted));
+            System.out.println("TP 1" + responseMessage);
             return responseMessage;
         } else { // post message to single applicationID
             boolean produced = false;
             try {
                 produced = simpleMessageQueue.produceMessageToApplication(serialNumber, applicationID, message);
-                responseMessage.setMsg(produced ? "OK" : "ERROR");
-
+                responseMessage.setMsg(iMessageProcessor.getStatusMessage(messageMapper.getMsg(), produced));
+                System.out.println("TP 2" + responseMessage);
                 return responseMessage;
             } catch (PoolingQueueException e) {
+                LOGGER.error(e.getMessage());
                 LOGGER.warn("Unable to produce an application message to a nonexistent central [" + serialNumber + "].");
                 if(e.getCode() == PoolingQueueException.CENTRAL_NOT_FOUND) {
-                    tryingToCreateCentral(serialNumber);
+                    try {
+                        tryingToCreateCentral(serialNumber);
+                        produced = simpleMessageQueue.produceMessageToApplication(serialNumber, applicationID, message);
+                        responseMessage.setMsg(iMessageProcessor.getStatusMessage(messageMapper.getMsg(), produced));
+                        System.out.println("TP 3" + responseMessage);
+                        return responseMessage;
+                    } catch (Exception e1) {
+                        e1.printStackTrace();
+                    }
+
                 }
             } catch (Exception e) {
                 LOGGER.error(e.getMessage());
             }
 
-            responseMessage.setMsg(produced ? "OK" : "ERROR");
+            responseMessage.setMsg(iMessageProcessor.getStatusMessage(messageMapper.getMsg(), produced));
+            System.out.println("TP 4" + responseMessage);
             return responseMessage;
         }
     }
@@ -105,9 +135,9 @@ public class PoolingQueueServiceImpl implements PoolingQueueService {
     public MessageMapper aconn(String serialNumber, String applicationID, String contentType, MessageMapper message) {
 
         //TODO: should we try to create a queue to app?
-
         MessageMapper returnMessage = new MessageMapper();
-        returnMessage.setMsg("Not yet implemented exception. :P");
+        System.out.println("ACONN:[" + message.getMsg()+"]");
+        returnMessage.setMsg(iMessageProcessor.getStatusMessage(message.getMsg(), true));
         return returnMessage;
     }
 
@@ -122,23 +152,25 @@ public class PoolingQueueServiceImpl implements PoolingQueueService {
             try {
                 message = simpleMessageQueue.consumeMessageOfApplication(serialNumber, applicationID);
             } catch (PoolingQueueException e) {
-                LOGGER.warn("Unable to consume an application message from a nonexistent central [" + serialNumber + "].");
                 if(e.getCode() == PoolingQueueException.CENTRAL_NOT_FOUND) {
+                    LOGGER.warn("Unable to consume an application message from a nonexistent central [" + serialNumber + "].");
                     tryingToCreateCentral(serialNumber);
                     try {
                         message = simpleMessageQueue.consumeMessageOfApplication(serialNumber, applicationID);
                     } catch (Exception e1) {
+                        e1.printStackTrace();
                         LOGGER.error(e1.getMessage());
                     }
                 }
             } catch (Exception e) {
+                e.printStackTrace();
                 LOGGER.error(e.getMessage());
             }
 
             if(message == null){
-                responseMessage.setMsg("{}");
+                responseMessage.setMsg("");
             } else {
-                responseMessage.setMsg(message.getMessage());
+                responseMessage.setMsg(iMessageProcessor.getStatusMessage(message.getMessage(), true));
             }
             return responseMessage;
         } else {
@@ -197,7 +229,7 @@ public class PoolingQueueServiceImpl implements PoolingQueueService {
             LOGGER.error(e.getMessage());
         }
 
-        responseMessage.setMsg(produced ? "OK" : "ERROR");
+        responseMessage.setMsg(iMessageProcessor.getStatusMessage(messageMapper.getMsg(), produced));
         return responseMessage;
     }
 

@@ -1,13 +1,18 @@
 package br.com.pqs.controllers;
 
+import br.com.pqs.exceptions.PoolingQueueException;
 import br.com.pqs.sqs.model.MessageMapper;
 import br.com.pqs.sqs.service.PoolingQueueService;
+import br.com.processor.CloudiaMessageProcessor;
+import br.com.processor.IMessageProcessor;
 import com.google.gson.Gson;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import javax.annotation.PostConstruct;
 
 /**
  * Created by jordaoesa on 05/12/16.
@@ -18,6 +23,16 @@ public class PQSController {
 
     @Autowired
     private PoolingQueueService poolingQueueService;
+
+    @PostConstruct
+    void init() {
+        System.out.println("INIT - POST CONSTRUCT");
+        try {
+            poolingQueueService.setIMessageProcessor(new CloudiaMessageProcessor());
+        } catch (PoolingQueueException e) {
+            e.printStackTrace();
+        }
+    }
 
     @RequestMapping(value = "/cconn", method = RequestMethod.POST)
     public ResponseEntity<String> cconn(@RequestHeader(value = "Serial-Number") String serialNumber,
@@ -39,14 +54,17 @@ public class PQSController {
 
     @RequestMapping(value = "/cpush", method = RequestMethod.POST)
     public ResponseEntity<String> cpush(@RequestHeader(value = "Serial-Number") String serialNumber,
-                                        @RequestHeader(value = "Application-ID") String applicationID,
+                                        @RequestHeader(value = "Application-ID", required = false) String applicationID,
                                         @RequestHeader(value = "Broadcast", required = false) String broadcast,
                                         @RequestHeader(value = "Content-Type") String contentType,
                                         @RequestBody MessageMapper message) {
 
-        MessageMapper responseMessage = poolingQueueService.cpush(serialNumber, applicationID, broadcast, contentType, message);
+        if(applicationID == null) {
+            MessageMapper responseMessage = poolingQueueService.cpush(serialNumber, applicationID, broadcast, contentType, message);
+            return new ResponseEntity<String>(new Gson().toJson(responseMessage), HttpStatus.OK);
+        }
 
-        return new ResponseEntity<String>(new Gson().toJson(responseMessage), HttpStatus.OK);
+        return new ResponseEntity<String>(new Gson().toJson(""), HttpStatus.OK);
     }
 
     @RequestMapping(value = "/aconn", method = RequestMethod.POST)

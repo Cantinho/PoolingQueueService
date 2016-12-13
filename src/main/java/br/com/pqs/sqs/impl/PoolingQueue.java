@@ -113,12 +113,12 @@ public class PoolingQueue implements IPoolingQueue {
             while(applicationQueuesIterator.hasNext()) {
                 broadcasted = true;
                 final String applicationQueueName = applicationQueuesIterator.next();
-                if(applicationIdOrigin.equals(applicationQueueName)) {
+                if(applicationIdOrigin != null && applicationIdOrigin.equals(applicationQueueName)) {
                     containsApplicationId = true;
                 }
                 applicationQueues.get(applicationQueueName).add(message);
             }
-            if(!containsApplicationId && applicationIdOrigin != null) {
+            if(!containsApplicationId && applicationIdOrigin != null && !applicationIdOrigin.trim().isEmpty()) {
                 createApplicationQueueAndTrySendMessage(applicationIdOrigin, message);
                 broadcasted = true;
             }
