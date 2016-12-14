@@ -1,10 +1,9 @@
 package br.com.pqs.controllers;
 
 import br.com.pqs.exceptions.PoolingQueueException;
-import br.com.pqs.sqs.model.MessageMapper;
 import br.com.pqs.sqs.service.PoolingQueueService;
 import br.com.processor.CloudiaMessageProcessor;
-import br.com.processor.IMessageProcessor;
+import br.com.processor.mapper.MessageMapper;
 import com.google.gson.Gson;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.ComponentScan;
@@ -95,6 +94,15 @@ public class PQSController {
         MessageMapper responseMessage = poolingQueueService.apush(serialNumber, applicationID, contentType, message);
 
         return new ResponseEntity<String>(new Gson().toJson(responseMessage), HttpStatus.OK);
+    }
+
+
+    @RequestMapping(value = "/isconn", method = RequestMethod.GET)
+    public ResponseEntity<String> isconn(@RequestHeader(value = "Serial-Number") String serialNumber) {
+
+        boolean responseMessage = poolingQueueService.isconn(serialNumber);
+
+        return new ResponseEntity<String>(responseMessage ? "OK" : "ERROR", HttpStatus.OK);
     }
 
 }

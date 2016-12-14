@@ -3,9 +3,9 @@ package br.com.pqs.sqs.service;
 import br.com.pqs.bean.Message;
 import br.com.pqs.exceptions.PoolingQueueException;
 import br.com.pqs.sqs.SimpleMessageQueue;
-import br.com.pqs.sqs.model.MessageMapper;
 import br.com.processor.IMessageProcessor;
 import br.com.processor.SimpleMessageProcessor;
+import br.com.processor.mapper.MessageMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,6 +56,11 @@ public class PoolingQueueServiceImpl implements PoolingQueueService {
     }
 
     @Override
+    public boolean isconn(String serialNumber) {
+        return isCentralConnected(serialNumber);
+    }
+
+    @Override
     public MessageMapper cpull(String serialNumber) {
 
         Message message = null;
@@ -82,6 +87,8 @@ public class PoolingQueueServiceImpl implements PoolingQueueService {
 
     @Override
     public MessageMapper cpush(String serialNumber, String applicationID, String broadcast, String contentType, MessageMapper messageMapper) {
+
+        System.out.println("TESTE cpush: " + messageMapper.getMsg());
 
         MessageMapper responseMessage = new MessageMapper();
 
@@ -178,7 +185,7 @@ public class PoolingQueueServiceImpl implements PoolingQueueService {
             if(message == null){
                 responseMessage.setMsg("");
             } else {
-                responseMessage.setMsg(iMessageProcessor.getStatusMessage(message.getMessage(), true));
+                responseMessage.setMsg(message.getMessage());
             }
             return responseMessage;
         } else {
@@ -252,5 +259,14 @@ public class PoolingQueueServiceImpl implements PoolingQueueService {
             return false;
         }
     }
+
+    private boolean isCentralConnected(String serialNumber) {
+        if(serialNumber == null || serialNumber.trim().isEmpty()) {
+            return false;
+        }
+        List<String> centralQueues = simpleMessageQueue.listPoolingQueues();
+        return centralQueues.contains(serialNumber);
+    }
+
 
 }

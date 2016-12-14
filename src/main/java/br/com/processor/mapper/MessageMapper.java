@@ -1,9 +1,11 @@
-package br.com.pqs.sqs.model;
+package br.com.processor.mapper;
+
+import com.google.gson.Gson;
 
 import java.util.List;
 
 /**
- * Created by jordaoesa on 05/12/16.
+ * Created by jordaoesa on 12/12/16.
  */
 public class MessageMapper {
 
@@ -41,5 +43,9 @@ public class MessageMapper {
 
     public void setMsgs(List<String> msgs) {
         this.msgs = msgs;
+    }
+
+    public String toJson(){
+        return new Gson().toJson(this);
     }
 }

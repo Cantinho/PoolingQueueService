@@ -13,13 +13,13 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 public class AWSSQSQueue {
-    public static void main(String[] args) throws Exception {
+    /*public static void main(String[] args) throws Exception {
 
-        /*
+        *//*
          * The ProfileCredentialsProvider returns your [default]
          * credential profile by reading from the credentials file located at
          * (~/.aws/credentials).
-         */
+         *//*
         AWSCredentials credentials = null;
         try {
             credentials = new ProfileCredentialsProvider().getCredentials();
@@ -119,5 +119,5 @@ public class AWSSQSQueue {
                     "being able to access the network.");
             System.out.println("Error Message: " + ace.getMessage());
         }
-    }
+    }*/
 }

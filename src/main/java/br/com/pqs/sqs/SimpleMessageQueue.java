@@ -33,4 +33,7 @@ public interface SimpleMessageQueue {
     List<Message> consumeMessageOfApplication(final String centralName, final String applicationId, final int amount) throws Exception;
 
     String addApplicationPoolingQueue(String serialNumber, String applicationID) throws Exception;
+
+    List<String> listPoolingQueues();
+
 }

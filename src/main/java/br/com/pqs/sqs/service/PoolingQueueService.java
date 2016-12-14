@@ -2,8 +2,8 @@ package br.com.pqs.sqs.service;
 
 
 import br.com.pqs.exceptions.PoolingQueueException;
-import br.com.pqs.sqs.model.MessageMapper;
 import br.com.processor.IMessageProcessor;
+import br.com.processor.mapper.MessageMapper;
 
 /**
  * Created by jordaoesa on 05/12/16.
@@ -24,4 +24,5 @@ public interface PoolingQueueService {
 
     MessageMapper apush(String serialNumber, String applicationID, String contentType, MessageMapper messageMapper);
 
+    boolean isconn(String serialNumber);
 }

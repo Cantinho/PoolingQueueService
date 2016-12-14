@@ -153,4 +153,16 @@ public class SimpleMessageQueueImpl implements SimpleMessageQueue {
         throw new PoolingQueueException("Central [" + centralName + "] does not exist.", CENTRAL_NOT_FOUND);
     }
 
+    @Override
+    public List<String> listPoolingQueues() {
+        synchronized (poolingQueueLock) {
+            List<String> queueNames = new ArrayList<>();
+            Iterator<String> poolingQueueNames = poolingQueueMap.keySet().iterator();
+            while(poolingQueueNames.hasNext()) {
+                queueNames.add(poolingQueueNames.next());
+            }
+            return queueNames;
+        }
+    }
+
 }
