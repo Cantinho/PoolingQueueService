@@ -30,11 +30,11 @@ public class SimpleMessageQueueImpl implements SimpleMessageQueue {
         this.poolingQueueClassName = className;
     }
 
-    public void setPoolingQueueClassName(final String poolingQueueClassName) {
+    public synchronized void setPoolingQueueClassName(final String poolingQueueClassName) {
         this.poolingQueueClassName = poolingQueueClassName;
     }
 
-    public void createPoolingQueue(final String queueName) throws Exception {
+    public synchronized void createPoolingQueue(final String queueName) throws Exception {
         if(poolingQueueMap.containsKey(queueName)) {
             LOGGER.info("PoolingQueue already exists [" + queueName + "].");
             return;
@@ -96,7 +96,7 @@ public class SimpleMessageQueueImpl implements SimpleMessageQueue {
 
 
 
-    public boolean produceMessageToApplication(final String centralName, final String applicationId, Message message) throws Exception {
+    public boolean produceMessageToApplication(final String centralName, final String applicationId, final Message message) throws Exception {
         synchronized (poolingQueueLock) {
             if(poolingQueueMap.containsKey(centralName)) {
                 return poolingQueueMap.get(centralName).produceMessageToApplication(applicationId, message);
@@ -106,7 +106,7 @@ public class SimpleMessageQueueImpl implements SimpleMessageQueue {
     }
 
     @Override
-    public boolean broadcastMessageToApplication(String centralName, String applicationId, Message message) throws Exception {
+    public synchronized boolean broadcastMessageToApplication(String centralName, String applicationId, Message message) throws Exception {
         synchronized (poolingQueueLock) {
             if(poolingQueueMap.containsKey(centralName)) {
                 return poolingQueueMap.get(centralName).broadcastMessageToApplication(applicationId, message);
@@ -115,7 +115,7 @@ public class SimpleMessageQueueImpl implements SimpleMessageQueue {
         throw new PoolingQueueException("Central [" + centralName + "] does not exist.", CENTRAL_NOT_FOUND);
     }
 
-    public Message peekMessageOfApplication(final String centralName, final String applicationId) throws Exception {
+    public synchronized Message peekMessageOfApplication(final String centralName, final String applicationId) throws Exception {
         synchronized (poolingQueueLock) {
             if(poolingQueueMap.containsKey(centralName)) {
                 return poolingQueueMap.get(centralName).peekMessageOfApplication(applicationId);
@@ -124,7 +124,7 @@ public class SimpleMessageQueueImpl implements SimpleMessageQueue {
         throw new PoolingQueueException("Central [" + centralName + "] does not exist.", CENTRAL_NOT_FOUND);
     }
 
-    public Message consumeMessageOfApplication(final String centralName, final String applicationId) throws Exception {
+    public synchronized Message consumeMessageOfApplication(final String centralName, final String applicationId) throws Exception {
         synchronized (poolingQueueLock) {
             if(poolingQueueMap.containsKey(centralName)) {
                 return poolingQueueMap.get(centralName).consumeMessageOfApplication(applicationId);
@@ -144,7 +144,7 @@ public class SimpleMessageQueueImpl implements SimpleMessageQueue {
     }
 
     @Override
-    public String addApplicationPoolingQueue(String centralName, String applicationID) throws Exception {
+    public String addApplicationPoolingQueue(final String centralName, final String applicationID) throws Exception {
         synchronized (poolingQueueLock) {
             if(poolingQueueMap.containsKey(centralName)) {
                 return poolingQueueMap.get(centralName).addApplicationPoolingQueue(applicationID);
