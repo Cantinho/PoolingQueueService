@@ -1,6 +1,7 @@
 package br.com.pqs.sqs.service;
 
 import br.com.pqs.bean.Message;
+import br.com.pqs.bean.PQSResponse;
 import br.com.pqs.exceptions.PoolingQueueException;
 import br.com.pqs.sqs.SimpleMessageQueue;
 import br.com.processor.IMessageProcessor;
@@ -9,12 +10,11 @@ import br.com.processor.mapper.MessageMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 /**
  * Created by jordaoesa on 06/12/16.
@@ -61,11 +61,15 @@ public class PoolingQueueServiceImpl implements PoolingQueueService {
     }
 
     @Override
-    public MessageMapper cpull(String serialNumber) {
+    public PQSResponse cpull(final String serialNumber) {
 
         Message message = null;
         try {
-            message = simpleMessageQueue.consumeMessageOfCentral(serialNumber);
+            while(message == null) {
+                message = simpleMessageQueue.consumeMessageOfCentral(serialNumber);
+                //System.out.println("GETTING MESSAGE: " + message);
+                Thread.sleep(100 + new Random().nextInt(100));
+            }
         }  catch (PoolingQueueException e) {
             LOGGER.warn("Unable to consume an application message from a nonexistent central [" + serialNumber + "].");
             if(e.getCode() == PoolingQueueException.CENTRAL_NOT_FOUND) {
@@ -75,18 +79,12 @@ public class PoolingQueueServiceImpl implements PoolingQueueService {
             LOGGER.error(e.getMessage());
         }
 
-        MessageMapper responseMessage = new MessageMapper();
-        if(message == null){
-            responseMessage.setMsg("");
-        } else {
-            responseMessage.setMsg(message.getMessage());
-        }
-
-        return responseMessage;
+        System.out.println("MESSAGE: " + message);
+        return getResponseFromMessage(message);
     }
 
     @Override
-    public MessageMapper cpush(String serialNumber, String applicationID, String broadcast, String contentType, MessageMapper messageMapper) {
+    public MessageMapper cpush(final String serialNumber, final String applicationID, final String broadcast, final String contentType, final MessageMapper messageMapper) {
 
         System.out.println("TESTE cpush: " + messageMapper.getMsg());
 
@@ -157,9 +155,7 @@ public class PoolingQueueServiceImpl implements PoolingQueueService {
     }
 
     @Override
-    public MessageMapper apull(String serialNumber, String applicationID, String messageAmount) {
-
-        MessageMapper responseMessage = new MessageMapper();
+    public PQSResponse apull(String serialNumber, String applicationID, String messageAmount) {
 
         if(messageAmount == null || Integer.valueOf(messageAmount) == 0 || Integer.valueOf(messageAmount) == 1) {
             LOGGER.info("pulling only 1 message");
@@ -182,12 +178,7 @@ public class PoolingQueueServiceImpl implements PoolingQueueService {
                 LOGGER.error(e.getMessage());
             }
 
-            if(message == null){
-                responseMessage.setMsg("");
-            } else {
-                responseMessage.setMsg(message.getMessage());
-            }
-            return responseMessage;
+            return getResponseFromMessage(message);
         } else {
             LOGGER.info("pulling " + messageAmount + " messages");
             List<Message> messages = null;
@@ -208,14 +199,7 @@ public class PoolingQueueServiceImpl implements PoolingQueueService {
                 e.printStackTrace();
             }
 
-            List<String> msgs = new LinkedList<>();
-            if(messages != null){
-                for(Message msg : messages)
-                    msgs.add(msg.getMessage());
-            }
-
-            responseMessage.setMsgs(msgs);
-            return responseMessage;
+            return getResponseFromMessages(messages);
         }
     }
 
@@ -268,5 +252,53 @@ public class PoolingQueueServiceImpl implements PoolingQueueService {
         return centralQueues.contains(serialNumber);
     }
 
+    private PQSResponse getResponseFromMessage(Message message) {
+
+        MessageMapper body = new MessageMapper();
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Content-Type", "application/json");
+
+        if(message == null){
+            body.setMsg("");
+        } else {
+            if(message.getMessage() != null) {
+                body.setMsg(message.getMessage());
+            }
+            if (message.getSerialNumber() != null) {
+                headers.set("Serial-Number", message.getSerialNumber());
+            }
+            if (message.getApplicationID() != null) {
+                headers.set("Application-ID", message.getApplicationID());
+            }
+        }
+
+        return new PQSResponse(headers, body);
+    }
+
+    private PQSResponse getResponseFromMessages(List<Message> messages) {
+        MessageMapper body = new MessageMapper();
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Content-Type", "application/json");
+
+        if(messages == null || messages.isEmpty()){
+            body.setMsgs(new ArrayList<>());
+        } else {
+            Message message = messages.get(0);
+            if (message != null && message.getSerialNumber() != null) {
+                headers.set("Serial-Number", message.getSerialNumber());
+            }
+            if (message != null && message.getApplicationID() != null) {
+                headers.set("Application-ID", message.getApplicationID());
+            }
+
+            List<String> messagesStr = new LinkedList<>();
+            for(Message msg : messages){
+                messagesStr.add(msg.getMessage());
+            }
+            body.setMsgs(messagesStr);
+        }
+
+        return new PQSResponse(headers, body);
+    }
 
 }

@@ -1,10 +1,10 @@
 package br.com.pqs.controllers;
 
+import br.com.pqs.bean.PQSResponse;
 import br.com.pqs.exceptions.PoolingQueueException;
 import br.com.pqs.sqs.service.PoolingQueueService;
 import br.com.processor.CloudiaMessageProcessor;
 import br.com.processor.mapper.MessageMapper;
-import com.google.gson.Gson;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.HttpStatus;
@@ -34,66 +34,67 @@ public class PQSController {
     }
 
     @RequestMapping(value = "/cconn", method = RequestMethod.POST)
-    public ResponseEntity<String> cconn(@RequestHeader(value = "Serial-Number") String serialNumber,
+    public ResponseEntity<MessageMapper> cconn(@RequestHeader(value = "Serial-Number") String serialNumber,
                                         @RequestHeader(value = "Content-Type") String contentType,
                                         @RequestBody MessageMapper message) {
 
         MessageMapper responseMessage = poolingQueueService.cconn(serialNumber, contentType, message);
 
-        return new ResponseEntity<String>(new Gson().toJson(responseMessage), HttpStatus.OK);
+        return new ResponseEntity<MessageMapper>(responseMessage, HttpStatus.OK);
     }
 
     @RequestMapping(value = "/cpull", method = RequestMethod.GET)
-    public ResponseEntity<String> cpull(@RequestHeader(value = "Serial-Number") String serialNumber) {
+    public ResponseEntity<MessageMapper> cpull(@RequestHeader(value = "Serial-Number") String serialNumber) {
 
-        MessageMapper responseMessage = poolingQueueService.cpull(serialNumber);
+        PQSResponse pqsResponse = poolingQueueService.cpull(serialNumber);
 
-        return new ResponseEntity<String>(new Gson().toJson(responseMessage), HttpStatus.OK);
+        return new ResponseEntity<MessageMapper>(pqsResponse.getBody(), pqsResponse.getHeaders(), HttpStatus.OK);
     }
 
     @RequestMapping(value = "/cpush", method = RequestMethod.POST)
-    public ResponseEntity<String> cpush(@RequestHeader(value = "Serial-Number") String serialNumber,
+    public ResponseEntity<MessageMapper> cpush(@RequestHeader(value = "Serial-Number") String serialNumber,
                                         @RequestHeader(value = "Application-ID", required = false) String applicationID,
                                         @RequestHeader(value = "Broadcast", required = false) String broadcast,
                                         @RequestHeader(value = "Content-Type") String contentType,
                                         @RequestBody MessageMapper message) {
 
         MessageMapper responseMessage = poolingQueueService.cpush(serialNumber, applicationID, broadcast, contentType, message);
-        return new ResponseEntity<String>(new Gson().toJson(responseMessage), HttpStatus.OK);
+
+        return new ResponseEntity<MessageMapper>(responseMessage, HttpStatus.OK);
     }
 
     @RequestMapping(value = "/aconn", method = RequestMethod.POST)
-    public ResponseEntity<String> aconn(@RequestHeader(value = "Serial-Number") String serialNumber,
+    public ResponseEntity<MessageMapper> aconn(@RequestHeader(value = "Serial-Number") String serialNumber,
                                         @RequestHeader(value = "Application-ID") String applicationID,
                                         @RequestHeader(value = "Content-Type") String contentType,
                                         @RequestBody MessageMapper message) {
 
         MessageMapper responseMessage = poolingQueueService.aconn(serialNumber, applicationID, contentType, message);
 
-        return new ResponseEntity<String>(new Gson().toJson(responseMessage), HttpStatus.OK);
+        return new ResponseEntity<MessageMapper>(responseMessage, HttpStatus.OK);
     }
 
     @RequestMapping(value = "/apull", method = RequestMethod.GET)
-    public ResponseEntity<String> apull(@RequestHeader(value = "Serial-Number") String serialNumber,
+    public ResponseEntity<MessageMapper> apull(@RequestHeader(value = "Serial-Number") String serialNumber,
                                         @RequestHeader(value = "Application-ID") String applicationID,
                                         @RequestHeader(value = "Message-Amount", required = false) String messageAmount) {
 
-        MessageMapper responseMessage = poolingQueueService.apull(serialNumber, applicationID, messageAmount);
+        PQSResponse pqsResponse = poolingQueueService.apull(serialNumber, applicationID, messageAmount);
 
-        return new ResponseEntity<String>(new Gson().toJson(responseMessage), HttpStatus.OK);
+        return new ResponseEntity<MessageMapper>(pqsResponse.getBody(), pqsResponse.getHeaders(), HttpStatus.OK);
     }
 
 
 
     @RequestMapping(value = "/apush", method = RequestMethod.POST)
-    public ResponseEntity<String> apush(@RequestHeader(value = "Serial-Number") String serialNumber,
+    public ResponseEntity<MessageMapper> apush(@RequestHeader(value = "Serial-Number") String serialNumber,
                                         @RequestHeader(value = "Application-ID") String applicationID,
                                         @RequestHeader(value = "Content-Type") String contentType,
                                         @RequestBody MessageMapper message) {
 
         MessageMapper responseMessage = poolingQueueService.apush(serialNumber, applicationID, contentType, message);
 
-        return new ResponseEntity<String>(new Gson().toJson(responseMessage), HttpStatus.OK);
+        return new ResponseEntity<MessageMapper>(responseMessage, HttpStatus.OK);
     }
 
 

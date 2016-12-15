@@ -1,6 +1,7 @@
 package br.com.pqs.sqs.service;
 
 
+import br.com.pqs.bean.PQSResponse;
 import br.com.pqs.exceptions.PoolingQueueException;
 import br.com.processor.IMessageProcessor;
 import br.com.processor.mapper.MessageMapper;
@@ -14,13 +15,13 @@ public interface PoolingQueueService {
 
     MessageMapper cconn(String serialNumber, String contentType, MessageMapper messageMapper);
 
-    MessageMapper cpull(String serialNumber);
+    PQSResponse cpull(String serialNumber);
 
     MessageMapper cpush(String serialNumber, String applicationID, String broadcast, String contentType, MessageMapper messageMapper);
 
     MessageMapper aconn(String serialNumber, String applicationID, String contentType, MessageMapper messageMapper);
 
-    MessageMapper apull(String serialNumber, String applicationID, String messageAmount);
+    PQSResponse apull(String serialNumber, String applicationID, String messageAmount);
 
     MessageMapper apush(String serialNumber, String applicationID, String contentType, MessageMapper messageMapper);
 
