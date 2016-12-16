@@ -3,6 +3,7 @@ package br.com.pqs.controllers;
 import br.com.pqs.bean.PQSResponse;
 import br.com.pqs.exceptions.PoolingQueueException;
 import br.com.pqs.sqs.service.PoolingQueueService;
+import br.com.processor.CloudiaMessage;
 import br.com.processor.CloudiaMessageProcessor;
 import br.com.processor.mapper.MessageMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -99,11 +100,13 @@ public class PQSController {
 
 
     @RequestMapping(value = "/isconn", method = RequestMethod.GET)
-    public ResponseEntity<String> isconn(@RequestHeader(value = "Serial-Number") String serialNumber) {
+    public ResponseEntity<MessageMapper> isconn(@RequestHeader(value = "Serial-Number") String serialNumber) {
 
-        boolean responseMessage = poolingQueueService.isconn(serialNumber);
+        boolean isconn = poolingQueueService.isconn(serialNumber);
+        MessageMapper responseMessage = new MessageMapper();
+        responseMessage.setMsg(isconn ? CloudiaMessage.OK : CloudiaMessage.ERROR);
 
-        return new ResponseEntity<String>(responseMessage ? "OK" : "ERROR", HttpStatus.OK);
+        return new ResponseEntity<MessageMapper>(responseMessage, HttpStatus.OK);
     }
 
 }
