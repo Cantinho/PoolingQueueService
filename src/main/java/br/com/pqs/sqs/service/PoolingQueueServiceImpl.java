@@ -10,6 +10,7 @@ import br.com.processor.mapper.MessageMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 
@@ -26,6 +27,9 @@ public class PoolingQueueServiceImpl implements PoolingQueueService {
 
     @Autowired
     private SimpleMessageQueue simpleMessageQueue;
+
+    @Value("${tp}")
+    private Integer tp;
 
     private IMessageProcessor iMessageProcessor;
 
@@ -63,12 +67,23 @@ public class PoolingQueueServiceImpl implements PoolingQueueService {
     @Override
     public PQSResponse cpull(final String serialNumber) {
 
+        long initTime = new Date().getTime();
+        long nowTime;
+        int offset = new Random().nextInt(10);
+
         Message message = null;
         try {
             while(message == null) {
+
                 message = simpleMessageQueue.consumeMessageOfCentral(serialNumber);
                 //System.out.println("GETTING MESSAGE: " + message);
                 Thread.sleep(100 + new Random().nextInt(100));
+
+                nowTime = new Date().getTime();
+                if(nowTime - initTime >= ((tp + offset)*1000)){
+                    break;
+                }
+
             }
         }  catch (PoolingQueueException e) {
             LOGGER.warn("Unable to consume an application message from a nonexistent central [" + serialNumber + "].");
@@ -79,7 +94,7 @@ public class PoolingQueueServiceImpl implements PoolingQueueService {
             LOGGER.error(e.getMessage());
         }
 
-        System.out.println("MESSAGE: " + message);
+        System.out.println("Abortando pulling de forma segura!");
         return getResponseFromMessage(message);
     }
 
