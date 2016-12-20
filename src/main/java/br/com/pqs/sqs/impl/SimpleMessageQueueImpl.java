@@ -10,10 +10,32 @@ import org.springframework.stereotype.Component;
 
 import java.util.*;
 
-import static br.com.pqs.exceptions.PoolingQueueException.CENTRAL_NOT_FOUND;
+import static br.com.pqs.exceptions.PoolingQueueException.MASTER_NOT_FOUND;
 
 /**
- * Created by jordaoesa on 25/11/16.
+ * Copyright 2016 Cantinho. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * @author Samir Trajano Feitosa
+ * @author Jordão Ezequiel Serafim de Araújo
+ * @author Cantinho - Github https://github.com/Cantinho
+ * @since 2016
+ * @license Apache 2.0
+ *
+ * This file is licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.  For additional information regarding
+ * copyright in this work, please see the NOTICE file in the top level
+ * directory of this distribution.
+ *
  */
 @Component
 public class SimpleMessageQueueImpl implements SimpleMessageQueue {
@@ -58,99 +80,99 @@ public class SimpleMessageQueueImpl implements SimpleMessageQueue {
         poolingQueueMap.put(queueName, poolingQueue);
     }
 
-    public boolean produceMessageToCentral(final String centralName, final Message message) throws Exception {
+    public boolean produceMessageToMaster(final String masterName, final Message message) throws Exception {
         synchronized (poolingQueueLock) {
-            if(poolingQueueMap.containsKey(centralName)) {
-                return poolingQueueMap.get(centralName).produceMessageToCentral(message);
+            if(poolingQueueMap.containsKey(masterName)) {
+                return poolingQueueMap.get(masterName).produceMessageToMaster(message);
             }
         }
-        throw new PoolingQueueException("Central [" + centralName + "] does not exist.", CENTRAL_NOT_FOUND);
+        throw new PoolingQueueException("Master [" + masterName + "] does not exist.", MASTER_NOT_FOUND);
     }
 
-    public Message peekMessageOfCentral(final String centralName) throws Exception {
+    public Message peekMessageOfMaster(final String masterName) throws Exception {
         synchronized (poolingQueueLock) {
-            if(poolingQueueMap.containsKey(centralName)) {
-                return poolingQueueMap.get(centralName).peekMessageOfCentral();
+            if(poolingQueueMap.containsKey(masterName)) {
+                return poolingQueueMap.get(masterName).peekMessageOfMaster();
             }
         }
-        throw new PoolingQueueException("Central [" + centralName + "] does not exist.", CENTRAL_NOT_FOUND);
+        throw new PoolingQueueException("Master [" + masterName + "] does not exist.", MASTER_NOT_FOUND);
     }
 
-    public Message consumeMessageOfCentral(final String centralName) throws Exception {
+    public Message consumeMessageOfMaster(final String masterName) throws Exception {
         synchronized (poolingQueueLock) {
-            if(poolingQueueMap.containsKey(centralName)) {
-                return poolingQueueMap.get(centralName).consumeMessageOfCentral();
+            if(poolingQueueMap.containsKey(masterName)) {
+                return poolingQueueMap.get(masterName).consumeMessageOfMaster();
             }
         }
-        throw new PoolingQueueException("Central [" + centralName + "] does not exist.", CENTRAL_NOT_FOUND);
+        throw new PoolingQueueException("Master [" + masterName + "] does not exist.", MASTER_NOT_FOUND);
     }
 
-    public List<Message> consumeMessageOfCentral(final String centralName, final int amount) throws Exception {
+    public List<Message> consumeMessageOfMaster(final String masterName, final int amount) throws Exception {
         synchronized (poolingQueueLock) {
-            if(poolingQueueMap.containsKey(centralName)) {
-                return poolingQueueMap.get(centralName).consumeMessageOfCentral(amount);
+            if(poolingQueueMap.containsKey(masterName)) {
+                return poolingQueueMap.get(masterName).consumeMessageOfMaster(amount);
             }
         }
-        throw new PoolingQueueException("Central [" + centralName + "] does not exist.", CENTRAL_NOT_FOUND);
+        throw new PoolingQueueException("Master [" + masterName + "] does not exist.", MASTER_NOT_FOUND);
     }
 
 
 
-    public boolean produceMessageToApplication(final String centralName, final String applicationId, final Message message) throws Exception {
+    public boolean produceMessageToSlave(final String masterName, final String slaveId, final Message message) throws Exception {
         synchronized (poolingQueueLock) {
-            if(poolingQueueMap.containsKey(centralName)) {
-                return poolingQueueMap.get(centralName).produceMessageToApplication(applicationId, message);
+            if(poolingQueueMap.containsKey(masterName)) {
+                return poolingQueueMap.get(masterName).produceMessageToSlave(slaveId, message);
             }
         }
-        throw new PoolingQueueException("Central [" + centralName + "] does not exist.", CENTRAL_NOT_FOUND);
-    }
-
-    @Override
-    public synchronized boolean broadcastMessageToApplication(String centralName, String applicationId, Message message) throws Exception {
-        synchronized (poolingQueueLock) {
-            if(poolingQueueMap.containsKey(centralName)) {
-                return poolingQueueMap.get(centralName).broadcastMessageToApplication(applicationId, message);
-            }
-        }
-        throw new PoolingQueueException("Central [" + centralName + "] does not exist.", CENTRAL_NOT_FOUND);
-    }
-
-    public synchronized Message peekMessageOfApplication(final String centralName, final String applicationId) throws Exception {
-        synchronized (poolingQueueLock) {
-            if(poolingQueueMap.containsKey(centralName)) {
-                return poolingQueueMap.get(centralName).peekMessageOfApplication(applicationId);
-            }
-        }
-        throw new PoolingQueueException("Central [" + centralName + "] does not exist.", CENTRAL_NOT_FOUND);
-    }
-
-    public synchronized Message consumeMessageOfApplication(final String centralName, final String applicationId) throws Exception {
-        synchronized (poolingQueueLock) {
-            if(poolingQueueMap.containsKey(centralName)) {
-                return poolingQueueMap.get(centralName).consumeMessageOfApplication(applicationId);
-            }
-        }
-        LOGGER.info("Central [" + centralName + "] does not exist.");
-        throw new PoolingQueueException("Central [" + centralName + "] does not exist.", CENTRAL_NOT_FOUND);
-    }
-
-    public List<Message> consumeMessageOfApplication(final String centralName, final String applicationId, final int amount) throws Exception {
-        synchronized (poolingQueueLock) {
-            if(poolingQueueMap.containsKey(centralName)) {
-                return poolingQueueMap.get(centralName).consumeMessageOfApplication(applicationId, amount);
-            }
-        }
-        throw new PoolingQueueException("Central [" + centralName + "] does not exist.", CENTRAL_NOT_FOUND);
+        throw new PoolingQueueException("Master [" + masterName + "] does not exist.", MASTER_NOT_FOUND);
     }
 
     @Override
-    public String addApplicationPoolingQueue(final String centralName, final String applicationID) throws Exception {
+    public synchronized boolean broadcastMessageToSlave(String masterName, String slaveId, Message message) throws Exception {
         synchronized (poolingQueueLock) {
-            if(poolingQueueMap.containsKey(centralName)) {
-                return poolingQueueMap.get(centralName).addApplicationPoolingQueue(applicationID);
+            if(poolingQueueMap.containsKey(masterName)) {
+                return poolingQueueMap.get(masterName).broadcastMessageToSlave(slaveId, message);
             }
         }
-        throw new PoolingQueueException("Central [" + centralName + "] does not exist.", CENTRAL_NOT_FOUND);
+        throw new PoolingQueueException("Master [" + masterName + "] does not exist.", MASTER_NOT_FOUND);
+    }
+
+    public synchronized Message peekMessageOfSlave(final String masterName, final String slaveId) throws Exception {
+        synchronized (poolingQueueLock) {
+            if(poolingQueueMap.containsKey(masterName)) {
+                return poolingQueueMap.get(masterName).peekMessageOfSlave(slaveId);
+            }
+        }
+        throw new PoolingQueueException("Master [" + masterName + "] does not exist.", MASTER_NOT_FOUND);
+    }
+
+    public synchronized Message consumeMessageOfSlave(final String masterName, final String slaceId) throws Exception {
+        synchronized (poolingQueueLock) {
+            if(poolingQueueMap.containsKey(masterName)) {
+                return poolingQueueMap.get(masterName).consumeMessageOfSlave(slaceId);
+            }
+        }
+        LOGGER.info("Master [" + masterName + "] does not exist.");
+        throw new PoolingQueueException("Master [" + masterName + "] does not exist.", MASTER_NOT_FOUND);
+    }
+
+    public List<Message> consumeMessageOfSlave(final String masterName, final String slaveId, final int amount) throws Exception {
+        synchronized (poolingQueueLock) {
+            if(poolingQueueMap.containsKey(masterName)) {
+                return poolingQueueMap.get(masterName).consumeMessageOfSlave(slaveId, amount);
+            }
+        }
+        throw new PoolingQueueException("Master [" + masterName + "] does not exist.", MASTER_NOT_FOUND);
+    }
+
+    @Override
+    public String addSlavePoolingQueue(final String masterName, final String slaveId) throws Exception {
+        synchronized (poolingQueueLock) {
+            if(poolingQueueMap.containsKey(masterName)) {
+                return poolingQueueMap.get(masterName).addSlavePoolingQueue(slaveId);
+            }
+        }
+        throw new PoolingQueueException("Master [" + masterName + "] does not exist.", MASTER_NOT_FOUND);
     }
 
     @Override

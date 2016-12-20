@@ -1,25 +1,49 @@
 package br.com.pqs.sqs.impl;
 
 import br.com.pqs.bean.Message;
-import com.amazonaws.services.sqs.model.DeleteMessageBatchRequest;
 import com.amazonaws.services.sqs.model.DeleteMessageBatchRequestEntry;
 import com.amazonaws.services.sqs.model.SendMessageResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 
 import static br.com.pqs.bean.Message.parseMinimalistStringToMessage;
 import static br.com.pqs.bean.Message.parseToMinimalistString;
 
 /**
- * Created by samirtf on 27/11/16.
+ * Copyright 2016 Cantinho. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * @author Samir Trajano Feitosa
+ * @author Jordão Ezequiel Serafim de Araújo
+ * @author Cantinho - Github https://github.com/Cantinho
+ * @since 2016
+ * @license Apache 2.0
+ *
+ * This file is licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.  For additional information regarding
+ * copyright in this work, please see the NOTICE file in the top level
+ * directory of this distribution.
+ *
  */
 public class AmazonPoolingQueue implements IPoolingQueue {
 
     private final Logger LOGGER = LoggerFactory.getLogger(PoolingQueue.class);
-    final String centralLock = "CENTRAL_QUEUE_LOCK";
-    final String applicationLock = "APPLICATION_QUEUE_LOCK";
+    final String masterLock = "MASTER_QUEUE_LOCK";
+    final String slaveLock = "SLAVE_QUEUE_LOCK";
 
     private String queueName = "";
     private AmazonSQSApi amazonSQSApi;
@@ -54,7 +78,7 @@ public class AmazonPoolingQueue implements IPoolingQueue {
         amazonSQSApi.createQueue(queueName);
     }
 
-    public boolean produceMessageToCentral(final Message message) throws Exception {
+    public boolean produceMessageToMaster(final Message message) throws Exception {
         checkAmazonSQSApiInstance();
         if(amazonSQSApi.listQueues().getQueueUrls().contains(amazonSQSApi.getQueueUrl(queueName))) {
             SendMessageResult sendMessageResult = amazonSQSApi.sendMessage(queueName, parseToMinimalistString(message));
@@ -64,7 +88,7 @@ public class AmazonPoolingQueue implements IPoolingQueue {
     }
 
     @Override
-    public Message peekMessageOfCentral() throws Exception {
+    public Message peekMessageOfMaster() throws Exception {
         checkAmazonSQSApiInstance();
         if(amazonSQSApi.listQueues().getQueueUrls().contains(amazonSQSApi.getQueueUrl(queueName))) {
             List<com.amazonaws.services.sqs.model.Message> retrievedMessages = amazonSQSApi.receiveMessage(queueName, 1);
@@ -83,7 +107,7 @@ public class AmazonPoolingQueue implements IPoolingQueue {
     }
 
     @Override
-    public Message consumeMessageOfCentral() throws Exception {
+    public Message consumeMessageOfMaster() throws Exception {
         checkAmazonSQSApiInstance();
         if(amazonSQSApi.listQueues().getQueueUrls().contains(amazonSQSApi.getQueueUrl(queueName))) {
             List<com.amazonaws.services.sqs.model.Message> retrievedMessages = amazonSQSApi.receiveMessage(queueName, 1);
@@ -100,11 +124,11 @@ public class AmazonPoolingQueue implements IPoolingQueue {
         return null;
     }
 
-    public List<Message> consumeMessageOfCentral(final int amount) throws Exception {
+    public List<Message> consumeMessageOfMaster(final int amount) throws Exception {
         checkAmazonSQSApiInstance();
         List<Message> messages = new LinkedList<>();
 
-        synchronized (centralLock) {
+        synchronized (masterLock) {
             if(amazonSQSApi.listQueues().getQueueUrls().contains(amazonSQSApi.getQueueUrl(queueName))) {
                 List<Message> parsedMessages = new ArrayList<>();
                 List<com.amazonaws.services.sqs.model.Message> retrievedMessages = amazonSQSApi.receiveMessage(queueName, amount);
@@ -130,81 +154,81 @@ public class AmazonPoolingQueue implements IPoolingQueue {
     }
 
 
-    public boolean produceMessageToApplication(final String applicationId, final Message message) throws Exception {
+    public boolean produceMessageToSlave(final String slaveId, final Message message) throws Exception {
         checkAmazonSQSApiInstance();
-        final String applicationIdQueueName = queueName + "_" + applicationId;
-        boolean containsApplicationId = amazonSQSApi.listQueues().getQueueUrls()
-                .contains(amazonSQSApi.getQueueUrl(applicationIdQueueName));
-        synchronized (applicationLock) {
-            return sendMessage(applicationId, containsApplicationId, message);
+        final String slaveIdQueueName = queueName + "_" + slaveId;
+        boolean containsslaveId = amazonSQSApi.listQueues().getQueueUrls()
+                .contains(amazonSQSApi.getQueueUrl(slaveIdQueueName));
+        synchronized (slaveLock) {
+            return sendMessage(slaveId, containsslaveId, message);
         }
     }
 
     @Override
-    public boolean broadcastMessageToApplication(final String applicationIdOrigin, final Message message) throws Exception {
+    public boolean broadcastMessageToSlave(final String slaveIdOrigin, final Message message) throws Exception {
         checkAmazonSQSApiInstance();
 
-        synchronized (applicationLock) {
-            final String applicationIdQueueName = queueName + "_" + applicationIdOrigin;
+        synchronized (slaveLock) {
+            final String slaveIdQueueName = queueName + "_" + slaveIdOrigin;
             boolean broadcasted = false;
-            boolean applicationIdOriginFound = amazonSQSApi.listQueues(applicationIdQueueName).getQueueUrls()
-                    .contains(amazonSQSApi.getQueueUrl(applicationIdQueueName));
-            List<String> allApplicationQueueUrls = amazonSQSApi.listQueues().getQueueUrls();
+            boolean slaveIdOriginFound = amazonSQSApi.listQueues(slaveIdQueueName).getQueueUrls()
+                    .contains(amazonSQSApi.getQueueUrl(slaveIdQueueName));
+            List<String> allslaveQueueUrls = amazonSQSApi.listQueues().getQueueUrls();
 
             // TODO analisar url
 
-            List<String> applicationQueueNamesFound = new ArrayList<>();
-            Iterator<String> applicationNamesIterator = allApplicationQueueUrls.iterator();
-            while(applicationNamesIterator.hasNext()) {
-                final String currentApplicationUrl = applicationNamesIterator.next();
-                if(currentApplicationUrl.contains(queueName) && !currentApplicationUrl.contains(applicationIdQueueName)) {
-                    // adds only the applicationId different than applicationIdOrigin.
-                    // ApplicationIdOrigin will be used if applicationIdOriginFound is true;
-                    // If ApplicationIdOrigin is false, applicationQueue will be created.
+            List<String> slaveQueueNamesFound = new ArrayList<>();
+            Iterator<String> slaveNamesIterator = allslaveQueueUrls.iterator();
+            while(slaveNamesIterator.hasNext()) {
+                final String currentSlaveUrl = slaveNamesIterator.next();
+                if(currentSlaveUrl.contains(queueName) && !currentSlaveUrl.contains(slaveIdQueueName)) {
+                    // adds only the slaveId different than slaveIdOrigin.
+                    // slaveIdOrigin will be used if slaveIdOriginFound is true;
+                    // If slaveIdOrigin is false, slaveQueue will be created.
 
-                    final String currentApplicationName = currentApplicationUrl.replace(amazonSQSApi.getBaseUrl() +
+                    final String currentSlaveName = currentSlaveUrl.replace(amazonSQSApi.getBaseUrl() +
                             "/" + amazonSQSApi.getAccountId() + "/", "").replace("." + amazonSQSApi.getQueueType(), "");
 
-                    applicationQueueNamesFound.add(currentApplicationName);
+                    slaveQueueNamesFound.add(currentSlaveName);
                 }
             }
-            Iterator<String> applicationNamesFoundIterator = applicationQueueNamesFound.iterator();
-            while(applicationNamesFoundIterator.hasNext()) {
+            Iterator<String> slaveNamesFoundIterator = slaveQueueNamesFound.iterator();
+            while(slaveNamesFoundIterator.hasNext()) {
                 broadcasted = true;
-                amazonSQSApi.sendMessage(applicationIdQueueName, parseToMinimalistString(message));
+                amazonSQSApi.sendMessage(slaveIdQueueName, parseToMinimalistString(message));
             }
-            if(applicationIdOrigin != null) {
-                broadcasted = sendMessage(applicationIdOrigin, applicationIdOriginFound, message);
+            if(slaveIdOrigin != null) {
+                broadcasted = sendMessage(slaveIdOrigin, slaveIdOriginFound, message);
             }
             return broadcasted;
         }
     }
 
-    private boolean sendMessage(final String applicationIdOrigin, final boolean applicationIdAlreadyExists, final Message message) {
-        final String applicationIdQueueName = queueName + "_" + applicationIdOrigin;
-        if (applicationIdAlreadyExists) {
-            return null != amazonSQSApi.sendMessage(applicationIdQueueName, parseToMinimalistString(message));
+    private boolean sendMessage(final String slaveIdOrigin, final boolean slaveIdAlreadyExists, final Message message) {
+        final String slaveIdQueueName = queueName + "_" + slaveIdOrigin;
+        if (slaveIdAlreadyExists) {
+            return null != amazonSQSApi.sendMessage(slaveIdQueueName, parseToMinimalistString(message));
         } else {
-            boolean wasQueueCreated = null != amazonSQSApi.createQueue(applicationIdQueueName);
+            boolean wasQueueCreated = null != amazonSQSApi.createQueue(slaveIdQueueName);
             if(!wasQueueCreated) {
-                LOGGER.info("Queue [" + applicationIdQueueName + "] was not created.");
+                LOGGER.info("Queue [" + slaveIdQueueName + "] was not created.");
                 return false;
             }
-            return null != amazonSQSApi.sendMessage(applicationIdQueueName, parseToMinimalistString(message));
+            return null != amazonSQSApi.sendMessage(slaveIdQueueName, parseToMinimalistString(message));
         }
     }
 
-    public Message peekMessageOfApplication(final String applicationId) throws Exception {
+    public Message peekMessageOfSlave(final String slaveId) throws Exception {
         checkAmazonSQSApiInstance();
 
         //TODO FIXME PLEASE
 
-        /* synchronized (applicationLock) {
-            final String applicationIdQueueName = queueName + "_" + applicationId;
-            boolean containsApplicationId = amazonSQSApi.listQueues(applicationIdQueueName).getQueueUrls()
-                    .contains(applicationIdQueueName);
-            if(containsApplicationId) {
-                List<Message> retrievedMessages = amazonSQSApi.receiveMessage(applicationIdQueueName, 1);
+        /* synchronized (slaveLock) {
+            final String slaveIdQueueName = queueName + "_" + slaveId;
+            boolean containsslaveId = amazonSQSApi.listQueues(slaveIdQueueName).getQueueUrls()
+                    .contains(slaveIdQueueName);
+            if(containsslaveId) {
+                List<Message> retrievedMessages = amazonSQSApi.receiveMessage(slaveIdQueueName, 1);
                 return retrievedMessages == null || retrievedMessages.isEmpty() ? null : retrievedMessages.get(0);
             } else {
                 return null;
@@ -214,20 +238,20 @@ public class AmazonPoolingQueue implements IPoolingQueue {
         return null; //TODO REMOVE THIS AFTER FIX ENTIRE METHOD
     }
 
-    public Message consumeMessageOfApplication(final String applicationId) throws Exception {
+    public Message consumeMessageOfSlave(final String slaveId) throws Exception {
         checkAmazonSQSApiInstance();
 
         //TODO FIXME PLEASE
 
-        /*synchronized (applicationLock) {
-            final String applicationIdQueueName = queueName + "_" + applicationId;
-            boolean containsApplicationId = amazonSQSApi.listQueues().contains(applicationIdQueueName);
-            if (containsApplicationId) {
-                List<Message> retrievedMessages = amazonSQSApi.receiveMessage(applicationIdQueueName, 1);
+        /*synchronized (slaveLock) {
+            final String slaveIdQueueName = queueName + "_" + slaveId;
+            boolean containsslaveId = amazonSQSApi.listQueues().contains(slaveIdQueueName);
+            if (containsslaveId) {
+                List<Message> retrievedMessages = amazonSQSApi.receiveMessage(slaveIdQueueName, 1);
                 if(retrievedMessages == null || retrievedMessages.isEmpty()){
                     return null;
                 } else {
-                    amazonSQSApi.deleteMessage(applicationIdQueueName, retrievedMessages.get(0));
+                    amazonSQSApi.deleteMessage(slaveIdQueueName, retrievedMessages.get(0));
                     return retrievedMessages.get(0);
                 }
             }
@@ -235,18 +259,18 @@ public class AmazonPoolingQueue implements IPoolingQueue {
         return null;
     }
 
-    public List<Message> consumeMessageOfApplication(final String applicationId, final int amount) throws Exception {
+    public List<Message> consumeMessageOfSlave(final String slaveId, final int amount) throws Exception {
         checkAmazonSQSApiInstance();
 
         //TODO FIXME PLEASE
         /*List<Message> retrievedMessages = new LinkedList<>();
-        synchronized (applicationLock) {
-            final String applicationIdQueueName = queueName + "_" + applicationId;
-            boolean containsApplicationId = amazonSQSApi.listQueues().contains(applicationIdQueueName);
-            if(containsApplicationId) {
-                List<Message> receivedMessages = amazonSQSApi.receiveMessage(applicationIdQueueName, amount);
+        synchronized (slaveLock) {
+            final String slaveIdQueueName = queueName + "_" + slaveId;
+            boolean containsslaveId = amazonSQSApi.listQueues().contains(slaveIdQueueName);
+            if(containsslaveId) {
+                List<Message> receivedMessages = amazonSQSApi.receiveMessage(slaveIdQueueName, amount);
                 if(!receivedMessages.isEmpty()) {
-                    amazonSQSApi.deleteMessage(applicationIdQueueName, receivedMessages);
+                    amazonSQSApi.deleteMessage(slaveIdQueueName, receivedMessages);
                 }
                 return receivedMessages;
             }
@@ -258,7 +282,7 @@ public class AmazonPoolingQueue implements IPoolingQueue {
     }
 
     @Override
-    public String addApplicationPoolingQueue(String applicationID) throws Exception {
+    public String addSlavePoolingQueue(String slaveId) throws Exception {
         //TODO FIXME PLEASE
         return null;
     }

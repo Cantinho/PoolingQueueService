@@ -6,7 +6,7 @@ import br.com.pqs.exceptions.PoolingQueueException;
 import br.com.pqs.sqs.SimpleMessageQueue;
 import br.com.processor.IMessageProcessor;
 import br.com.processor.SimpleMessageProcessor;
-import br.com.processor.mapper.MessageMapper;
+import br.com.processor.mapper.SimpleMessageMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +18,29 @@ import javax.annotation.PostConstruct;
 import java.util.*;
 
 /**
- * Created by jordaoesa on 06/12/16.
+ * Copyright 2016 Cantinho. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * @author Samir Trajano Feitosa
+ * @author Jordão Ezequiel Serafim de Araújo
+ * @author Cantinho - Github https://github.com/Cantinho
+ * @since 2016
+ * @license Apache 2.0
+ *
+ * This file is licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.  For additional information regarding
+ * copyright in this work, please see the NOTICE file in the top level
+ * directory of this distribution.
+ *
  */
 @Component
 public class PoolingQueueServiceImpl implements PoolingQueueService {
@@ -48,24 +70,24 @@ public class PoolingQueueServiceImpl implements PoolingQueueService {
     }
 
     @Override
-    public MessageMapper cconn(String serialNumber, String contentType, MessageMapper messageMapper) {
-        MessageMapper returnMessage = new MessageMapper();
-        System.out.println("MESSAGE MAPPER.GETMSG()" + messageMapper.getMsg());
-        boolean connected = tryingToCreateCentral(serialNumber);
+    public SimpleMessageMapper mconn(String masterSN, String contentType, SimpleMessageMapper messageMapper) {
+        SimpleMessageMapper returnMessage = new SimpleMessageMapper();
+        System.out.println("MESSAGE MAPPER.getMessage()" + messageMapper.getMessage());
+        boolean connected = tryingToCreateMaster(masterSN);
 
-        returnMessage.setTp(1);
-        System.out.println("CCONN -MSG WRAPPER :" + messageMapper.getMsg());
-        returnMessage.setMsg(iMessageProcessor.getStatusMessage(messageMapper.getMsg(), connected));
+        returnMessage.setIndex(1);
+        System.out.println("CCONN -MSG WRAPPER :" + messageMapper.getMessage());
+        returnMessage.setMessage(iMessageProcessor.getStatusMessage(messageMapper.getMessage(), connected));
         return returnMessage;
     }
 
     @Override
-    public boolean isconn(String serialNumber) {
-        return isCentralConnected(serialNumber);
+    public boolean isconn(String masterSN) {
+        return isMasterConnected(masterSN);
     }
 
     @Override
-    public PQSResponse cpull(final String serialNumber) {
+    public PQSResponse mpull(final String masterSN) {
 
         long initTime = new Date().getTime();
         long nowTime;
@@ -75,7 +97,7 @@ public class PoolingQueueServiceImpl implements PoolingQueueService {
         try {
             while(message == null) {
 
-                message = simpleMessageQueue.consumeMessageOfCentral(serialNumber);
+                message = simpleMessageQueue.consumeMessageOfMaster(masterSN);
                 //System.out.println("GETTING MESSAGE: " + message);
                 Thread.sleep(100 + new Random().nextInt(100));
 
@@ -86,9 +108,9 @@ public class PoolingQueueServiceImpl implements PoolingQueueService {
 
             }
         }  catch (PoolingQueueException e) {
-            LOGGER.warn("Unable to consume an application message from a nonexistent central [" + serialNumber + "].");
-            if(e.getCode() == PoolingQueueException.CENTRAL_NOT_FOUND) {
-                tryingToCreateCentral(serialNumber);
+            LOGGER.warn("Unable to consume an slave message from a nonexistent master [" + masterSN + "].");
+            if(e.getCode() == PoolingQueueException.MASTER_NOT_FOUND) {
+                tryingToCreateMaster(masterSN);
             }
         } catch (Exception e) {
             LOGGER.error(e.getMessage());
@@ -99,41 +121,41 @@ public class PoolingQueueServiceImpl implements PoolingQueueService {
     }
 
     @Override
-    public MessageMapper cpush(final String serialNumber, final String applicationID, final String broadcast, final String contentType, final MessageMapper messageMapper) {
+    public SimpleMessageMapper mpush(final String masterSN, final String slaveId, final String broadcast, final String contentType, final SimpleMessageMapper messageMapper) {
 
-        System.out.println("TESTE cpush: " + messageMapper.getMsg());
+        System.out.println("TESTE mpush: " + messageMapper.getMessage());
 
-        MessageMapper responseMessage = new MessageMapper();
+        SimpleMessageMapper responseMessage = new SimpleMessageMapper();
 
         String timestamp = String.valueOf(new Date().getTime());
         String priority = "10";
-        Message message = new Message(serialNumber, applicationID, timestamp, priority, messageMapper.getMsg());
+        Message message = new Message(masterSN, slaveId, timestamp, priority, messageMapper.getMessage());
 
-        if(broadcast != null) { // post message to all applications
+        if(broadcast != null) { // post message to all slaves
             boolean broadcasted = false;
             try {
-                broadcasted = simpleMessageQueue.broadcastMessageToApplication(serialNumber, applicationID, message);
+                broadcasted = simpleMessageQueue.broadcastMessageToSlave(masterSN, slaveId, message);
             } catch (Exception e) {
                 LOGGER.error(e.getMessage());
             }
-            responseMessage.setMsg(iMessageProcessor.getStatusMessage(messageMapper.getMsg(), broadcasted));
+            responseMessage.setMessage(iMessageProcessor.getStatusMessage(messageMapper.getMessage(), broadcasted));
             System.out.println("TP 1" + responseMessage);
             return responseMessage;
-        } else { // post message to single applicationID
+        } else { // post message to single slaveId
             boolean produced = false;
             try {
-                produced = simpleMessageQueue.produceMessageToApplication(serialNumber, applicationID, message);
-                responseMessage.setMsg(iMessageProcessor.getStatusMessage(messageMapper.getMsg(), produced));
+                produced = simpleMessageQueue.produceMessageToSlave(masterSN, slaveId, message);
+                responseMessage.setMessage(iMessageProcessor.getStatusMessage(messageMapper.getMessage(), produced));
                 System.out.println("TP 2" + responseMessage);
                 return responseMessage;
             } catch (PoolingQueueException e) {
                 LOGGER.error(e.getMessage());
-                LOGGER.warn("Unable to produce an application message to a nonexistent central [" + serialNumber + "].");
-                if(e.getCode() == PoolingQueueException.CENTRAL_NOT_FOUND) {
+                LOGGER.warn("Unable to produce an slave message to a nonexistent master [" + masterSN + "].");
+                if(e.getCode() == PoolingQueueException.MASTER_NOT_FOUND) {
                     try {
-                        tryingToCreateCentral(serialNumber);
-                        produced = simpleMessageQueue.produceMessageToApplication(serialNumber, applicationID, message);
-                        responseMessage.setMsg(iMessageProcessor.getStatusMessage(messageMapper.getMsg(), produced));
+                        tryingToCreateMaster(masterSN);
+                        produced = simpleMessageQueue.produceMessageToSlave(masterSN, slaveId, message);
+                        responseMessage.setMessage(iMessageProcessor.getStatusMessage(messageMapper.getMessage(), produced));
                         System.out.println("TP 3" + responseMessage);
                         return responseMessage;
                     } catch (Exception e1) {
@@ -145,44 +167,44 @@ public class PoolingQueueServiceImpl implements PoolingQueueService {
                 LOGGER.error(e.getMessage());
             }
 
-            responseMessage.setMsg(iMessageProcessor.getStatusMessage(messageMapper.getMsg(), produced));
+            responseMessage.setMessage(iMessageProcessor.getStatusMessage(messageMapper.getMessage(), produced));
             System.out.println("TP 4" + responseMessage);
             return responseMessage;
         }
     }
 
     @Override
-    public MessageMapper aconn(String serialNumber, String applicationID, String contentType, MessageMapper message) {
+    public SimpleMessageMapper sconn(String masterSN, String slaveId, String contentType, SimpleMessageMapper message) {
 
         //TODO: should we try to create a queue to app?
         //TODO Should I? Really?
         //TODO Request STATUS
-        MessageMapper returnMessage = new MessageMapper();
+        SimpleMessageMapper returnMessage = new SimpleMessageMapper();
 
         try {
-            simpleMessageQueue.addApplicationPoolingQueue(serialNumber, applicationID);
-            returnMessage.setMsg(iMessageProcessor.getStatusMessage(message.getMsg(), true));
+            simpleMessageQueue.addSlavePoolingQueue(masterSN, slaveId);
+            returnMessage.setMessage(iMessageProcessor.getStatusMessage(message.getMessage(), true));
         } catch (Exception e) {
-            returnMessage.setMsg(iMessageProcessor.getStatusMessage(message.getMsg(), false));
+            returnMessage.setMessage(iMessageProcessor.getStatusMessage(message.getMessage(), false));
             e.printStackTrace();
         }
         return returnMessage;
     }
 
     @Override
-    public PQSResponse apull(String serialNumber, String applicationID, String messageAmount) {
+    public PQSResponse spull(String masterSN, String slaveId, String messageAmount) {
 
         if(messageAmount == null || Integer.valueOf(messageAmount) == 0 || Integer.valueOf(messageAmount) == 1) {
             LOGGER.info("pulling only 1 message");
             Message message = null;
             try {
-                message = simpleMessageQueue.consumeMessageOfApplication(serialNumber, applicationID);
+                message = simpleMessageQueue.consumeMessageOfSlave(masterSN, slaveId);
             } catch (PoolingQueueException e) {
-                if(e.getCode() == PoolingQueueException.CENTRAL_NOT_FOUND) {
-                    LOGGER.warn("Unable to consume an application message from a nonexistent central [" + serialNumber + "].");
-                    tryingToCreateCentral(serialNumber);
+                if(e.getCode() == PoolingQueueException.MASTER_NOT_FOUND) {
+                    LOGGER.warn("Unable to consume an slave message from a nonexistent master [" + masterSN + "].");
+                    tryingToCreateMaster(masterSN);
                     try {
-                        message = simpleMessageQueue.consumeMessageOfApplication(serialNumber, applicationID);
+                        message = simpleMessageQueue.consumeMessageOfSlave(masterSN, slaveId);
                     } catch (Exception e1) {
                         e1.printStackTrace();
                         LOGGER.error(e1.getMessage());
@@ -198,14 +220,14 @@ public class PoolingQueueServiceImpl implements PoolingQueueService {
             LOGGER.info("pulling " + messageAmount + " messages");
             List<Message> messages = null;
             try {
-                messages = simpleMessageQueue.consumeMessageOfApplication(serialNumber, applicationID, Integer.valueOf(messageAmount));
+                messages = simpleMessageQueue.consumeMessageOfSlave(masterSN, slaveId, Integer.valueOf(messageAmount));
             } catch (PoolingQueueException e) {
                 //e.printStackTrace();
-                LOGGER.warn("Unable to consume an application message from a nonexistent central [" + serialNumber + "].");
-                if(e.getCode() == PoolingQueueException.CENTRAL_NOT_FOUND) {
-                    tryingToCreateCentral(serialNumber);
+                LOGGER.warn("Unable to consume an slave message from a nonexistent master [" + masterSN + "].");
+                if(e.getCode() == PoolingQueueException.MASTER_NOT_FOUND) {
+                    tryingToCreateMaster(masterSN);
                     try {
-                        messages = simpleMessageQueue.consumeMessageOfApplication(serialNumber, applicationID, Integer.valueOf(messageAmount));
+                        messages = simpleMessageQueue.consumeMessageOfSlave(masterSN, slaveId, Integer.valueOf(messageAmount));
                     } catch (Exception e1) {
                         e1.printStackTrace();
                     }
@@ -219,22 +241,22 @@ public class PoolingQueueServiceImpl implements PoolingQueueService {
     }
 
     @Override
-    public MessageMapper apush(String serialNumber, String applicationID, String contentType, MessageMapper messageMapper) {
+    public SimpleMessageMapper spush(String masterSN, String slaveId, String contentType, SimpleMessageMapper messageMapper) {
 
-        MessageMapper responseMessage = new MessageMapper();
+        SimpleMessageMapper responseMessage = new SimpleMessageMapper();
 
         String timestamp = String.valueOf(new Date().getTime());
         String priority = "10";
-        Message message = new Message(serialNumber, applicationID, timestamp, priority, messageMapper.getMsg());
+        Message message = new Message(masterSN, slaveId, timestamp, priority, messageMapper.getMessage());
         boolean produced = false;
         try {
-            produced = simpleMessageQueue.produceMessageToCentral(serialNumber, message);
+            produced = simpleMessageQueue.produceMessageToMaster(masterSN, message);
         } catch (PoolingQueueException e) {
-            LOGGER.warn("Unable to produce an application message from a nonexistent central [" + serialNumber + "].");
-            if(e.getCode() == PoolingQueueException.CENTRAL_NOT_FOUND) {
-                tryingToCreateCentral(serialNumber);
+            LOGGER.warn("Unable to produce an slave message from a nonexistent master [" + masterSN + "].");
+            if(e.getCode() == PoolingQueueException.MASTER_NOT_FOUND) {
+                tryingToCreateMaster(masterSN);
                 try {
-                    produced = simpleMessageQueue.produceMessageToCentral(serialNumber, message);
+                    produced = simpleMessageQueue.produceMessageToMaster(masterSN, message);
                 } catch (Exception e1) {
                     LOGGER.error(e1.getMessage());
                 }
@@ -243,47 +265,46 @@ public class PoolingQueueServiceImpl implements PoolingQueueService {
             LOGGER.error(e.getMessage());
         }
 
-        responseMessage.setMsg(iMessageProcessor.getStatusMessage(messageMapper.getMsg(), produced));
+        responseMessage.setMessage(iMessageProcessor.getStatusMessage(messageMapper.getMessage(), produced));
         return responseMessage;
     }
 
-    private boolean tryingToCreateCentral(final String serialNumber) {
+    private boolean tryingToCreateMaster(final String masterSN) {
         try {
-            LOGGER.info("Trying to create a central [" + serialNumber + "].");
-            simpleMessageQueue.createPoolingQueue(serialNumber);
+            LOGGER.info("Trying to create a master [" + masterSN + "].");
+            simpleMessageQueue.createPoolingQueue(masterSN);
             return true;
         } catch (Exception e1) {
-            LOGGER.error("It failed miserably in creating a new central [" + serialNumber + "].");
+            LOGGER.error("It failed miserably in creating a new master [" + masterSN + "].");
             e1.printStackTrace();
             return false;
         }
     }
 
-    private boolean isCentralConnected(String serialNumber) {
-        if(serialNumber == null || serialNumber.trim().isEmpty()) {
+    private boolean isMasterConnected(String masterSN) {
+        if(masterSN == null || masterSN.trim().isEmpty()) {
             return false;
         }
-        List<String> centralQueues = simpleMessageQueue.listPoolingQueues();
-        return centralQueues.contains(serialNumber);
+        List<String> masterQueues = simpleMessageQueue.listPoolingQueues();
+        return masterQueues.contains(masterSN);
     }
 
     private PQSResponse getResponseFromMessage(Message message) {
 
-        MessageMapper body = new MessageMapper();
+        SimpleMessageMapper body = new SimpleMessageMapper();
         HttpHeaders headers = new HttpHeaders();
-        headers.set("Content-Type", "application/json");
 
         if(message == null){
-            body.setMsg("");
+            body.setMessage("");
         } else {
             if(message.getMessage() != null) {
-                body.setMsg(message.getMessage());
+                body.setMessage(message.getMessage());
             }
-            if (message.getSerialNumber() != null) {
-                headers.set("Serial-Number", message.getSerialNumber());
+            if (message.getMasterSN() != null) {
+                headers.set("MasterS-N", message.getMasterSN());
             }
-            if (message.getApplicationID() != null) {
-                headers.set("Application-ID", message.getApplicationID());
+            if (message.getSlaveID() != null) {
+                headers.set("Slave-ID", message.getSlaveID());
             }
         }
 
@@ -291,26 +312,26 @@ public class PoolingQueueServiceImpl implements PoolingQueueService {
     }
 
     private PQSResponse getResponseFromMessages(List<Message> messages) {
-        MessageMapper body = new MessageMapper();
+        SimpleMessageMapper body = new SimpleMessageMapper();
         HttpHeaders headers = new HttpHeaders();
         headers.set("Content-Type", "application/json");
 
         if(messages == null || messages.isEmpty()){
-            body.setMsgs(new ArrayList<>());
+            body.setMessages(new ArrayList<>());
         } else {
             Message message = messages.get(0);
-            if (message != null && message.getSerialNumber() != null) {
-                headers.set("Serial-Number", message.getSerialNumber());
+            if (message != null && message.getMasterSN() != null) {
+                headers.set("Master-SN", message.getMasterSN());
             }
-            if (message != null && message.getApplicationID() != null) {
-                headers.set("Application-ID", message.getApplicationID());
+            if (message != null && message.getSlaveID() != null) {
+                headers.set("Slave-ID", message.getSlaveID());
             }
 
             List<String> messagesStr = new LinkedList<>();
             for(Message msg : messages){
                 messagesStr.add(msg.getMessage());
             }
-            body.setMsgs(messagesStr);
+            body.setMessages(messagesStr);
         }
 
         return new PQSResponse(headers, body);

@@ -8,21 +8,43 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import static br.com.pqs.exceptions.PoolingQueueException.APPLICATION_NOT_FOUND;
+import static br.com.pqs.exceptions.PoolingQueueException.SLAVE_NOT_FOUND;
 
 /**
- * Created by samirtf on 26/11/16.
+ * Copyright 2016 Cantinho. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * @author Samir Trajano Feitosa
+ * @author Jordão Ezequiel Serafim de Araújo
+ * @author Cantinho - Github https://github.com/Cantinho
+ * @since 2016
+ * @license Apache 2.0
+ *
+ * This file is licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.  For additional information regarding
+ * copyright in this work, please see the NOTICE file in the top level
+ * directory of this distribution.
+ *
  */
 public class PoolingQueue implements IPoolingQueue {
 
     private final Logger LOGGER = LoggerFactory.getLogger(PoolingQueue.class);
 
-    final String centralLock = "CENTRAL_QUEUE_LOCK";
-    final String applicationLock = "APPLICATION_QUEUE_LOCK";
+    final String masterLock = "MASTER_QUEUE_LOCK";
+    final String slaveLock = "SLAVE_QUEUE_LOCK";
 
     private String queueName;
-    private Queue<Message> centralQueue = new LinkedBlockingQueue<>();
-    private Map<String, Queue<Message>> applicationQueues = new TreeMap<>();
+    private Queue<Message> masterQueue = new LinkedBlockingQueue<>();
+    private Map<String, Queue<Message>> slaveQueues = new TreeMap<>();
 
     PoolingQueue() {}
 
@@ -37,163 +59,163 @@ public class PoolingQueue implements IPoolingQueue {
     }
 
     @Override
-    public boolean produceMessageToCentral(final Message message) throws Exception {
+    public boolean produceMessageToMaster(final Message message) throws Exception {
         validateQueueName();
-        boolean produced = centralQueue.add(message);
-        LOGGER.info("Central [" + queueName + "] has " + centralQueue.size() + " messages");
+        boolean produced = masterQueue.add(message);
+        LOGGER.info("Master [" + queueName + "] has " + masterQueue.size() + " messages");
         return produced;
     }
 
-    public Message peekMessageOfCentral() throws Exception {
+    public Message peekMessageOfMaster() throws Exception {
         validateQueueName();
-        return centralQueue.peek();
+        return masterQueue.peek();
     }
 
-    public Message consumeMessageOfCentral() throws Exception {
+    public Message consumeMessageOfMaster() throws Exception {
         validateQueueName();
-        Message retrievedMessage = centralQueue.poll();
-        LOGGER.info("Central [" + queueName + "] has " + centralQueue.size() + " messages");
+        Message retrievedMessage = masterQueue.poll();
+        LOGGER.info("Master [" + queueName + "] has " + masterQueue.size() + " messages");
         return retrievedMessage;
     }
 
-    public List<Message> consumeMessageOfCentral(final int amount) throws Exception {
+    public List<Message> consumeMessageOfMaster(final int amount) throws Exception {
         validateQueueName();
         List<Message> retrievedMessages = new LinkedList<>();
-        synchronized (centralLock) {
+        synchronized (masterLock) {
             int counter = amount;
             while(counter > 0) {
-                Message retrievedMessage = centralQueue.poll();
+                Message retrievedMessage = masterQueue.poll();
                 if(retrievedMessage == null) {
-                    LOGGER.info("Central [" + queueName + "] has " + centralQueue.size() + " messages");
+                    LOGGER.info("Master [" + queueName + "] has " + masterQueue.size() + " messages");
                     return retrievedMessages;
                 }
                 retrievedMessages.add(retrievedMessages.size(), retrievedMessage);
                 counter--;
                 if(counter <= 0) {
-                    LOGGER.info("Central [" + queueName + "] has " + centralQueue.size() + " messages");
+                    LOGGER.info("Master [" + queueName + "] has " + masterQueue.size() + " messages");
                     return retrievedMessages;
                 }
             }
-            LOGGER.info("Central [" + queueName + "] has " + centralQueue.size() + " messages");
+            LOGGER.info("Master [" + queueName + "] has " + masterQueue.size() + " messages");
         }
         return retrievedMessages;
     }
 
-    public boolean produceMessageToApplication(final String applicationId, final Message message) throws Exception {
+    public boolean produceMessageToSlave(final String slaveId, final Message message) throws Exception {
         validateQueueName();
-        boolean containsApplicationId = applicationQueues.containsKey(applicationId);
-        synchronized (applicationLock) {
-            if (containsApplicationId) {
-                boolean produced = applicationQueues.get(applicationId).add(message);
-                LOGGER.info("Application queue [" + applicationId + "] has " + applicationQueues.get(applicationId).size() + " messages");
+        boolean containsslaveId = slaveQueues.containsKey(slaveId);
+        synchronized (slaveLock) {
+            if (containsslaveId) {
+                boolean produced = slaveQueues.get(slaveId).add(message);
+                LOGGER.info("Slave queue [" + slaveId + "] has " + slaveQueues.get(slaveId).size() + " messages");
                 return produced;
             } else {
-                return createApplicationQueueAndTrySendMessage(applicationId, message);
+                return createSlaveQueueAndTrySendMessage(slaveId, message);
             }
         }
     }
 
-    private boolean createApplicationQueueAndTrySendMessage(final String applicationId, final Message message) {
-        Queue<Message> newApplicationQueue = new LinkedBlockingQueue<>();
-        boolean wasMessageAdded = newApplicationQueue.add(message);
-        LOGGER.info("Application queue [" + applicationId + "] has " + newApplicationQueue.size() + " messages");
-        if (applicationQueues.put(applicationId, newApplicationQueue) == null) {
-            LOGGER.info("There wasn't a previously queue with applicationId " + applicationId);
+    private boolean createSlaveQueueAndTrySendMessage(final String slaveId, final Message message) {
+        Queue<Message> newSlaveQueue = new LinkedBlockingQueue<>();
+        boolean wasMessageAdded = newSlaveQueue.add(message);
+        LOGGER.info("Slave queue [" + slaveId + "] has " + newSlaveQueue.size() + " messages");
+        if (slaveQueues.put(slaveId, newSlaveQueue) == null) {
+            LOGGER.info("There wasn't a previously queue with slaveId " + slaveId);
         }
         return wasMessageAdded;
     }
 
-    private String createApplicationQueue(final String applicationId) {
-        synchronized (applicationLock) {
-            if(!applicationQueues.containsKey(applicationId)) {
-                Queue<Message> newApplicationQueue = new LinkedBlockingQueue<>();
-                LOGGER.info("Application queue [" + applicationId + "] has " + newApplicationQueue.size() + " messages");
-                if (applicationQueues.put(applicationId, newApplicationQueue) == null) {
-                    LOGGER.info("There wasn't a previously queue with applicationId " + applicationId);
+    private String createSlaveQueue(final String slaveId) {
+        synchronized (slaveLock) {
+            if(!slaveQueues.containsKey(slaveId)) {
+                Queue<Message> newSlaveQueue = new LinkedBlockingQueue<>();
+                LOGGER.info("Slave queue [" + slaveId + "] has " + newSlaveQueue.size() + " messages");
+                if (slaveQueues.put(slaveId, newSlaveQueue) == null) {
+                    LOGGER.info("There wasn't a previously queue with slaveId " + slaveId);
                 }
             }else{
-                LOGGER.info("Application queue [" + applicationId + "] already exists with [ " + applicationQueues.get(applicationId).size() + " ] messages");
+                LOGGER.info("Slave queue [" + slaveId + "] already exists with [ " + slaveQueues.get(slaveId).size() + " ] messages");
             }
         }
-        return applicationId;
+        return slaveId;
     }
 
     @Override
-    public boolean broadcastMessageToApplication(final String applicationIdOrigin, final Message message) throws Exception {
+    public boolean broadcastMessageToSlave(final String slaveIdOrigin, final Message message) throws Exception {
         validateQueueName();
-        synchronized (applicationLock) {
-            boolean containsApplicationId = false;
+        synchronized (slaveLock) {
+            boolean containsslaveId = false;
             boolean broadcasted = false;
-            Iterator<String> applicationQueuesIterator = applicationQueues.keySet().iterator();
-            while(applicationQueuesIterator.hasNext()) {
+            Iterator<String> SlaveQueuesIterator = slaveQueues.keySet().iterator();
+            while(SlaveQueuesIterator.hasNext()) {
                 System.out.println();
                 broadcasted = true;
-                final String applicationQueueName = applicationQueuesIterator.next();
-                if(applicationIdOrigin != null && applicationIdOrigin.equals(applicationQueueName)) {
-                    containsApplicationId = true;
+                final String SlaveQueueName = SlaveQueuesIterator.next();
+                if(slaveIdOrigin != null && slaveIdOrigin.equals(SlaveQueueName)) {
+                    containsslaveId = true;
                 }
-                applicationQueues.get(applicationQueueName).add(message);
+                slaveQueues.get(SlaveQueueName).add(message);
             }
-            if(!containsApplicationId && applicationIdOrigin != null && !applicationIdOrigin.trim().isEmpty()) {
-                createApplicationQueueAndTrySendMessage(applicationIdOrigin, message);
+            if(!containsslaveId && slaveIdOrigin != null && !slaveIdOrigin.trim().isEmpty()) {
+                createSlaveQueueAndTrySendMessage(slaveIdOrigin, message);
                 broadcasted = true;
             }
             return broadcasted;
         }
     }
 
-    public Message peekMessageOfApplication(final String applicationId) throws Exception {
+    public Message peekMessageOfSlave(final String slaveId) throws Exception {
         validateQueueName();
-        Queue<Message> messageQueue = applicationQueues.get(applicationId);
+        Queue<Message> messageQueue = slaveQueues.get(slaveId);
         return messageQueue == null ? null : messageQueue.peek();
     }
 
-    public Message consumeMessageOfApplication(final String applicationId) throws Exception {
+    public Message consumeMessageOfSlave(final String slaveId) throws Exception {
         validateQueueName();
-        synchronized (applicationLock) {
-            boolean containsApplicationId = applicationQueues.containsKey(applicationId);
-            if (containsApplicationId) {
-                Message messagePolled = applicationQueues.get(applicationId).poll();
-                LOGGER.info("Application queue [" + applicationId + "] has " + applicationQueues.get(applicationId).size() + " messages");
+        synchronized (slaveLock) {
+            boolean containsslaveId = slaveQueues.containsKey(slaveId);
+            if (containsslaveId) {
+                Message messagePolled = slaveQueues.get(slaveId).poll();
+                LOGGER.info("Slave queue [" + slaveId + "] has " + slaveQueues.get(slaveId).size() + " messages");
                 return messagePolled;
             }
         }
-        throw new PoolingQueueException("", APPLICATION_NOT_FOUND);
+        throw new PoolingQueueException("", SLAVE_NOT_FOUND);
     }
 
-    public List<Message> consumeMessageOfApplication(final String applicationId, final int amount) throws Exception {
+    public List<Message> consumeMessageOfSlave(final String slaveId, final int amount) throws Exception {
         validateQueueName();
         List<Message> retrievedMessages = new LinkedList<>();
-        synchronized (applicationLock) {
-            Queue<Message> retrievedApplicationQueue = applicationQueues.get(applicationId);
-            if(retrievedApplicationQueue != null) {
+        synchronized (slaveLock) {
+            Queue<Message> retrievedSlaveQueue = slaveQueues.get(slaveId);
+            if(retrievedSlaveQueue != null) {
                 int counter = amount;
                 while(counter > 0) {
-                    Message retrievedMessage = retrievedApplicationQueue.poll();
+                    Message retrievedMessage = retrievedSlaveQueue.poll();
                     if(retrievedMessage == null) {
-                        LOGGER.info("Application queue [" + applicationId + "] has " + retrievedApplicationQueue.size() + " messages");
+                        LOGGER.info("Slave queue [" + slaveId + "] has " + retrievedSlaveQueue.size() + " messages");
                         return retrievedMessages;
                     }
                     retrievedMessages.add(retrievedMessages.size(), retrievedMessage);
                     counter--;
                     if(counter <= 0) {
-                        LOGGER.info("Application queue [" + applicationId + "] has " + retrievedApplicationQueue.size() + " messages");
+                        LOGGER.info("Slave queue [" + slaveId + "] has " + retrievedSlaveQueue.size() + " messages");
                         return retrievedMessages;
                     }
                 }
             }
-            LOGGER.info("Application queue [" + applicationId + "] has 0 messages");
-            throw new PoolingQueueException("", APPLICATION_NOT_FOUND);
+            LOGGER.info("Slave queue [" + slaveId + "] has 0 messages");
+            throw new PoolingQueueException("", SLAVE_NOT_FOUND);
         }
     }
 
     @Override
-    public synchronized String addApplicationPoolingQueue(String applicationID) throws Exception {
+    public synchronized String addSlavePoolingQueue(String slaveId) throws Exception {
         validateQueueName();
-        synchronized (applicationLock) {
-            String queueName = createApplicationQueue(applicationID);
+        synchronized (slaveLock) {
+            String queueName = createSlaveQueue(slaveId);
             if (queueName == null) {
-                throw new PoolingQueueException("", APPLICATION_NOT_FOUND);
+                throw new PoolingQueueException("", SLAVE_NOT_FOUND);
             }
             return queueName;
         }

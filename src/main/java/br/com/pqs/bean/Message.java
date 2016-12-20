@@ -1,39 +1,61 @@
 package br.com.pqs.bean;
 
 /**
- * Created by jordaoesa on 25/11/16.
+ * Copyright 2016 Cantinho. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * @author Samir Trajano Feitosa
+ * @author Jordão Ezequiel Serafim de Araújo
+ * @author Cantinho - Github https://github.com/Cantinho
+ * @since 2016
+ * @license Apache 2.0
+ *
+ * This file is licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.  For additional information regarding
+ * copyright in this work, please see the NOTICE file in the top level
+ * directory of this distribution.
+ *
  */
 public class Message {
-    private String SerialNumber;
-    private String ApplicationID;
+    private String masterSN;
+    private String slaveID;
     private String Timestamp;
     private String Priority;
     private String Message;
 
     public Message() {}
 
-    public Message(String serialNumber, String applicationID, String timestamp, String priority, String message) {
-        SerialNumber = serialNumber;
-        ApplicationID = applicationID;
+    public Message(String masterSN, String slaveID, String timestamp, String priority, String message) {
+        this.masterSN = masterSN;
+        this.slaveID = slaveID;
         Timestamp = timestamp;
         Priority = priority;
         Message = message;
     }
 
-    public String getSerialNumber() {
-        return SerialNumber;
+    public String getMasterSN() {
+        return masterSN;
     }
 
-    public void setSerialNumber(String serialNumber) {
-        SerialNumber = serialNumber;
+    public void setMasterSN(String masterSN) {
+        this.masterSN = masterSN;
     }
 
-    public String getApplicationID() {
-        return ApplicationID;
+    public String getSlaveID() {
+        return slaveID;
     }
 
-    public void setApplicationID(String applicationID) {
-        ApplicationID = applicationID;
+    public void setSlaveID(String slaveID) {
+        this.slaveID = slaveID;
     }
 
     public String getTimestamp() {
@@ -62,8 +84,8 @@ public class Message {
 
     public static String parseToMinimalistString(final Message message) {
         StringBuilder strBuilder = new StringBuilder();
-        strBuilder.append(message.getSerialNumber() + ";");
-        strBuilder.append(message.getApplicationID() + ";");
+        strBuilder.append(message.getMasterSN() + ";");
+        strBuilder.append(message.getSlaveID() + ";");
         strBuilder.append(message.getTimestamp() + ";");
         strBuilder.append(message.getPriority() + ";");
         strBuilder.append(message.getMessage());
