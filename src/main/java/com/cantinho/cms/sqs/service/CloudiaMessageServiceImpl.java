@@ -1,12 +1,12 @@
-package br.com.pqs.sqs.service;
+package com.cantinho.cms.sqs.service;
 
-import br.com.pqs.bean.Message;
-import br.com.pqs.bean.PQSResponse;
-import br.com.pqs.exceptions.PoolingQueueException;
-import br.com.pqs.sqs.SimpleMessageQueue;
+import br.com.processor.mapper.MessageMapper;
+import com.cantinho.cms.bean.Message;
+import com.cantinho.cms.bean.CMSResponse;
+import com.cantinho.cms.exceptions.CloudiaMessageException;
+import com.cantinho.cms.sqs.MessageQueue;
 import br.com.processor.IMessageProcessor;
 import br.com.processor.SimpleMessageProcessor;
-import br.com.processor.mapper.SimpleMessageMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,12 +43,12 @@ import java.util.*;
  *
  */
 @Component
-public class PoolingQueueServiceImpl implements PoolingQueueService {
+public class CloudiaMessageServiceImpl implements CloudiaMessageService {
 
     private final Logger LOGGER = LoggerFactory.getLogger(this.getClass());
 
     @Autowired
-    private SimpleMessageQueue simpleMessageQueue;
+    private MessageQueue messageQueue;
 
     @Value("${tp}")
     private Integer tp;
@@ -57,21 +57,21 @@ public class PoolingQueueServiceImpl implements PoolingQueueService {
 
     @PostConstruct
     void init() {
-        System.out.println("PoolingQueueServiceImpl - POST CONSTRUCT");
+        System.out.println("CloudiaMessageServiceImpl - POST CONSTRUCT");
         iMessageProcessor = new SimpleMessageProcessor();
     }
 
     @Override
-    public void setIMessageProcessor(IMessageProcessor iMessageProcessor) throws PoolingQueueException {
+    public void setIMessageProcessor(IMessageProcessor iMessageProcessor) throws CloudiaMessageException {
         if(iMessageProcessor == null) {
-            throw new PoolingQueueException("iMessageProcessor must be not null");
+            throw new CloudiaMessageException("iMessageProcessor must be not null");
         }
         this.iMessageProcessor = iMessageProcessor;
     }
 
     @Override
-    public SimpleMessageMapper mconn(String masterSN, String contentType, SimpleMessageMapper messageMapper) {
-        SimpleMessageMapper returnMessage = new SimpleMessageMapper();
+    public MessageMapper mconn(String masterSN, String contentType, MessageMapper messageMapper) {
+        MessageMapper returnMessage = new MessageMapper();
         System.out.println("MESSAGE MAPPER.getMessage()" + messageMapper.getMessage());
         boolean connected = tryingToCreateMaster(masterSN);
 
@@ -82,12 +82,17 @@ public class PoolingQueueServiceImpl implements PoolingQueueService {
     }
 
     @Override
-    public boolean isconn(String masterSN) {
-        return isMasterConnected(masterSN);
+    public boolean misconn(String masterId) {
+        return isMasterConnected(masterId);
     }
 
     @Override
-    public PQSResponse mpull(final String masterSN) {
+    public boolean sisconn(String slaveId) {
+        return false;
+    }
+
+    @Override
+    public CMSResponse mpull(final String masterSN) {
 
         long initTime = new Date().getTime();
         long nowTime;
@@ -97,7 +102,7 @@ public class PoolingQueueServiceImpl implements PoolingQueueService {
         try {
             while(message == null) {
 
-                message = simpleMessageQueue.consumeMessageOfMaster(masterSN);
+                message = messageQueue.consumeMessageOfMaster(masterSN);
                 //System.out.println("GETTING MESSAGE: " + message);
                 Thread.sleep(100 + new Random().nextInt(100));
 
@@ -107,9 +112,9 @@ public class PoolingQueueServiceImpl implements PoolingQueueService {
                 }
 
             }
-        }  catch (PoolingQueueException e) {
+        }  catch (CloudiaMessageException e) {
             LOGGER.warn("Unable to consume an slave message from a nonexistent master [" + masterSN + "].");
-            if(e.getCode() == PoolingQueueException.MASTER_NOT_FOUND) {
+            if(e.getCode() == CloudiaMessageException.MASTER_NOT_FOUND) {
                 tryingToCreateMaster(masterSN);
             }
         } catch (Exception e) {
@@ -121,20 +126,20 @@ public class PoolingQueueServiceImpl implements PoolingQueueService {
     }
 
     @Override
-    public SimpleMessageMapper mpush(final String masterSN, final String slaveId, final String broadcast, final String contentType, final SimpleMessageMapper messageMapper) {
+    public MessageMapper mpush(final String masterId, final String slaveId, final String broadcast, final String contentType, final MessageMapper messageMapper) {
 
         System.out.println("TESTE mpush: " + messageMapper.getMessage());
 
-        SimpleMessageMapper responseMessage = new SimpleMessageMapper();
+        MessageMapper responseMessage = new MessageMapper();
 
         String timestamp = String.valueOf(new Date().getTime());
         String priority = "10";
-        Message message = new Message(masterSN, slaveId, timestamp, priority, messageMapper.getMessage());
+        Message message = new Message(masterId, slaveId, timestamp, priority, messageMapper.getMessage());
 
         if(broadcast != null) { // post message to all slaves
             boolean broadcasted = false;
             try {
-                broadcasted = simpleMessageQueue.broadcastMessageToSlave(masterSN, slaveId, message);
+                broadcasted = messageQueue.broadcastMessageToSlave(masterId, slaveId, message);
             } catch (Exception e) {
                 LOGGER.error(e.getMessage());
             }
@@ -144,17 +149,17 @@ public class PoolingQueueServiceImpl implements PoolingQueueService {
         } else { // post message to single slaveId
             boolean produced = false;
             try {
-                produced = simpleMessageQueue.produceMessageToSlave(masterSN, slaveId, message);
+                produced = messageQueue.produceMessageToSlave(masterId, slaveId, message);
                 responseMessage.setMessage(iMessageProcessor.getStatusMessage(messageMapper.getMessage(), produced));
                 System.out.println("TP 2" + responseMessage);
                 return responseMessage;
-            } catch (PoolingQueueException e) {
+            } catch (CloudiaMessageException e) {
                 LOGGER.error(e.getMessage());
-                LOGGER.warn("Unable to produce an slave message to a nonexistent master [" + masterSN + "].");
-                if(e.getCode() == PoolingQueueException.MASTER_NOT_FOUND) {
+                LOGGER.warn("Unable to produce an slave message to a nonexistent master [" + masterId + "].");
+                if(e.getCode() == CloudiaMessageException.MASTER_NOT_FOUND) {
                     try {
-                        tryingToCreateMaster(masterSN);
-                        produced = simpleMessageQueue.produceMessageToSlave(masterSN, slaveId, message);
+                        tryingToCreateMaster(masterId);
+                        produced = messageQueue.produceMessageToSlave(masterId, slaveId, message);
                         responseMessage.setMessage(iMessageProcessor.getStatusMessage(messageMapper.getMessage(), produced));
                         System.out.println("TP 3" + responseMessage);
                         return responseMessage;
@@ -174,15 +179,15 @@ public class PoolingQueueServiceImpl implements PoolingQueueService {
     }
 
     @Override
-    public SimpleMessageMapper sconn(String masterSN, String slaveId, String contentType, SimpleMessageMapper message) {
+    public MessageMapper sconn(String masterId, String slaveId, String contentType, MessageMapper message) {
 
         //TODO: should we try to create a queue to app?
         //TODO Should I? Really?
         //TODO Request STATUS
-        SimpleMessageMapper returnMessage = new SimpleMessageMapper();
+        MessageMapper returnMessage = new MessageMapper();
 
         try {
-            simpleMessageQueue.addSlavePoolingQueue(masterSN, slaveId);
+            messageQueue.addSlaveMessageQueue(masterId, slaveId);
             returnMessage.setMessage(iMessageProcessor.getStatusMessage(message.getMessage(), true));
         } catch (Exception e) {
             returnMessage.setMessage(iMessageProcessor.getStatusMessage(message.getMessage(), false));
@@ -192,19 +197,19 @@ public class PoolingQueueServiceImpl implements PoolingQueueService {
     }
 
     @Override
-    public PQSResponse spull(String masterSN, String slaveId, String messageAmount) {
+    public CMSResponse spull(String masterId, String slaveId, String messageAmount) {
 
         if(messageAmount == null || Integer.valueOf(messageAmount) == 0 || Integer.valueOf(messageAmount) == 1) {
             LOGGER.info("pulling only 1 message");
             Message message = null;
             try {
-                message = simpleMessageQueue.consumeMessageOfSlave(masterSN, slaveId);
-            } catch (PoolingQueueException e) {
-                if(e.getCode() == PoolingQueueException.MASTER_NOT_FOUND) {
-                    LOGGER.warn("Unable to consume an slave message from a nonexistent master [" + masterSN + "].");
-                    tryingToCreateMaster(masterSN);
+                message = messageQueue.consumeMessageOfSlave(masterId, slaveId);
+            } catch (CloudiaMessageException e) {
+                if(e.getCode() == CloudiaMessageException.MASTER_NOT_FOUND) {
+                    LOGGER.warn("Unable to consume an slave message from a nonexistent master [" + masterId + "].");
+                    tryingToCreateMaster(masterId);
                     try {
-                        message = simpleMessageQueue.consumeMessageOfSlave(masterSN, slaveId);
+                        message = messageQueue.consumeMessageOfSlave(masterId, slaveId);
                     } catch (Exception e1) {
                         e1.printStackTrace();
                         LOGGER.error(e1.getMessage());
@@ -220,14 +225,14 @@ public class PoolingQueueServiceImpl implements PoolingQueueService {
             LOGGER.info("pulling " + messageAmount + " messages");
             List<Message> messages = null;
             try {
-                messages = simpleMessageQueue.consumeMessageOfSlave(masterSN, slaveId, Integer.valueOf(messageAmount));
-            } catch (PoolingQueueException e) {
+                messages = messageQueue.consumeMessageOfSlave(masterId, slaveId, Integer.valueOf(messageAmount));
+            } catch (CloudiaMessageException e) {
                 //e.printStackTrace();
-                LOGGER.warn("Unable to consume an slave message from a nonexistent master [" + masterSN + "].");
-                if(e.getCode() == PoolingQueueException.MASTER_NOT_FOUND) {
-                    tryingToCreateMaster(masterSN);
+                LOGGER.warn("Unable to consume an slave message from a nonexistent master [" + masterId + "].");
+                if(e.getCode() == CloudiaMessageException.MASTER_NOT_FOUND) {
+                    tryingToCreateMaster(masterId);
                     try {
-                        messages = simpleMessageQueue.consumeMessageOfSlave(masterSN, slaveId, Integer.valueOf(messageAmount));
+                        messages = messageQueue.consumeMessageOfSlave(masterId, slaveId, Integer.valueOf(messageAmount));
                     } catch (Exception e1) {
                         e1.printStackTrace();
                     }
@@ -241,22 +246,22 @@ public class PoolingQueueServiceImpl implements PoolingQueueService {
     }
 
     @Override
-    public SimpleMessageMapper spush(String masterSN, String slaveId, String contentType, SimpleMessageMapper messageMapper) {
+    public MessageMapper spush(String masterId, String slaveId, String contentType, MessageMapper messageMapper) {
 
-        SimpleMessageMapper responseMessage = new SimpleMessageMapper();
+        MessageMapper responseMessage = new MessageMapper();
 
         String timestamp = String.valueOf(new Date().getTime());
         String priority = "10";
-        Message message = new Message(masterSN, slaveId, timestamp, priority, messageMapper.getMessage());
+        Message message = new Message(masterId, slaveId, timestamp, priority, messageMapper.getMessage());
         boolean produced = false;
         try {
-            produced = simpleMessageQueue.produceMessageToMaster(masterSN, message);
-        } catch (PoolingQueueException e) {
-            LOGGER.warn("Unable to produce an slave message from a nonexistent master [" + masterSN + "].");
-            if(e.getCode() == PoolingQueueException.MASTER_NOT_FOUND) {
-                tryingToCreateMaster(masterSN);
+            produced = messageQueue.produceMessageToMaster(masterId, message);
+        } catch (CloudiaMessageException e) {
+            LOGGER.warn("Unable to produce an slave message from a nonexistent master [" + masterId + "].");
+            if(e.getCode() == CloudiaMessageException.MASTER_NOT_FOUND) {
+                tryingToCreateMaster(masterId);
                 try {
-                    produced = simpleMessageQueue.produceMessageToMaster(masterSN, message);
+                    produced = messageQueue.produceMessageToMaster(masterId, message);
                 } catch (Exception e1) {
                     LOGGER.error(e1.getMessage());
                 }
@@ -272,7 +277,7 @@ public class PoolingQueueServiceImpl implements PoolingQueueService {
     private boolean tryingToCreateMaster(final String masterSN) {
         try {
             LOGGER.info("Trying to create a master [" + masterSN + "].");
-            simpleMessageQueue.createPoolingQueue(masterSN);
+            messageQueue.createMessageQueue(masterSN);
             return true;
         } catch (Exception e1) {
             LOGGER.error("It failed miserably in creating a new master [" + masterSN + "].");
@@ -285,13 +290,13 @@ public class PoolingQueueServiceImpl implements PoolingQueueService {
         if(masterSN == null || masterSN.trim().isEmpty()) {
             return false;
         }
-        List<String> masterQueues = simpleMessageQueue.listPoolingQueues();
+        List<String> masterQueues = messageQueue.listMessageQueues();
         return masterQueues.contains(masterSN);
     }
 
-    private PQSResponse getResponseFromMessage(Message message) {
+    private CMSResponse getResponseFromMessage(Message message) {
 
-        SimpleMessageMapper body = new SimpleMessageMapper();
+        MessageMapper body = new MessageMapper();
         HttpHeaders headers = new HttpHeaders();
 
         if(message == null){
@@ -300,19 +305,19 @@ public class PoolingQueueServiceImpl implements PoolingQueueService {
             if(message.getMessage() != null) {
                 body.setMessage(message.getMessage());
             }
-            if (message.getMasterSN() != null) {
-                headers.set("MasterS-N", message.getMasterSN());
+            if (message.getSenderId() != null) {
+                headers.set("Master-ID", message.getSenderId());
             }
-            if (message.getSlaveID() != null) {
-                headers.set("Slave-ID", message.getSlaveID());
+            if (message.getReceiverId() != null) {
+                headers.set("Slave-ID", message.getReceiverId());
             }
         }
 
-        return new PQSResponse(headers, body);
+        return new CMSResponse(headers, body);
     }
 
-    private PQSResponse getResponseFromMessages(List<Message> messages) {
-        SimpleMessageMapper body = new SimpleMessageMapper();
+    private CMSResponse getResponseFromMessages(List<Message> messages) {
+        MessageMapper body = new MessageMapper();
         HttpHeaders headers = new HttpHeaders();
         headers.set("Content-Type", "application/json");
 
@@ -320,11 +325,11 @@ public class PoolingQueueServiceImpl implements PoolingQueueService {
             body.setMessages(new ArrayList<>());
         } else {
             Message message = messages.get(0);
-            if (message != null && message.getMasterSN() != null) {
-                headers.set("Master-SN", message.getMasterSN());
+            if (message != null && message.getSenderId() != null) {
+                headers.set("Master-ID", message.getSenderId());
             }
-            if (message != null && message.getSlaveID() != null) {
-                headers.set("Slave-ID", message.getSlaveID());
+            if (message != null && message.getReceiverId() != null) {
+                headers.set("Slave-ID", message.getReceiverId());
             }
 
             List<String> messagesStr = new LinkedList<>();
@@ -334,7 +339,7 @@ public class PoolingQueueServiceImpl implements PoolingQueueService {
             body.setMessages(messagesStr);
         }
 
-        return new PQSResponse(headers, body);
+        return new CMSResponse(headers, body);
     }
 
 }

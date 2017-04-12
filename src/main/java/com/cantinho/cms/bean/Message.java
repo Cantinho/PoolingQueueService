@@ -1,4 +1,4 @@
-package br.com.pqs.bean;
+package com.cantinho.cms.bean;
 
 /**
  * Copyright 2016 Cantinho. All Rights Reserved.
@@ -26,66 +26,67 @@ package br.com.pqs.bean;
  *
  */
 public class Message {
-    private String masterSN;
-    private String slaveID;
-    private String Timestamp;
-    private String Priority;
-    private String Message;
+
+    private String senderId;
+    private String receiverId;
+    private String timestamp;
+    private String priority;
+    private String message;
 
     public Message() {}
 
-    public Message(String masterSN, String slaveID, String timestamp, String priority, String message) {
-        this.masterSN = masterSN;
-        this.slaveID = slaveID;
-        Timestamp = timestamp;
-        Priority = priority;
-        Message = message;
+    public Message(String senderId, String receiverId, String timestamp, String priority, String message) {
+        this.senderId = senderId;
+        this.receiverId = receiverId;
+        this.timestamp = timestamp;
+        this.priority = priority;
+        this.message = message;
     }
 
-    public String getMasterSN() {
-        return masterSN;
+    public String getSenderId() {
+        return senderId;
     }
 
-    public void setMasterSN(String masterSN) {
-        this.masterSN = masterSN;
+    public void setSenderId(String senderId) {
+        this.senderId = senderId;
     }
 
-    public String getSlaveID() {
-        return slaveID;
+    public String getReceiverId() {
+        return receiverId;
     }
 
-    public void setSlaveID(String slaveID) {
-        this.slaveID = slaveID;
+    public void setReceiverId(String receiverId) {
+        this.receiverId = receiverId;
     }
 
     public String getTimestamp() {
-        return Timestamp;
+        return timestamp;
     }
 
     public void setTimestamp(String timestamp) {
-        Timestamp = timestamp;
+        this.timestamp = timestamp;
     }
 
     public String getPriority() {
-        return Priority;
+        return priority;
     }
 
     public void setPriority(String priority) {
-        Priority = priority;
+        this.priority = priority;
     }
 
     public String getMessage() {
-        return Message;
+        return message;
     }
 
     public void setMessage(String message) {
-        Message = message;
+        this.message = message;
     }
 
     public static String parseToMinimalistString(final Message message) {
         StringBuilder strBuilder = new StringBuilder();
-        strBuilder.append(message.getMasterSN() + ";");
-        strBuilder.append(message.getSlaveID() + ";");
+        strBuilder.append(message.getSenderId() + ";");
+        strBuilder.append(message.getReceiverId() + ";");
         strBuilder.append(message.getTimestamp() + ";");
         strBuilder.append(message.getPriority() + ";");
         strBuilder.append(message.getMessage());
@@ -96,9 +97,9 @@ public class Message {
     public static Message parseMinimalistStringToMessage(final String message) throws Exception {
         String[] parts = message.split(";");
         if(parts.length == 5) {
-            return new br.com.pqs.bean.Message(parts[0], parts[1], parts[2], parts[3], parts[4]);
+            return new Message(parts[0], parts[1], parts[2], parts[3], parts[4]);
         }
-        throw new Exception("Fail to parse minimalist string to Message");
+        throw new Exception("Fail to parse minimalist string to message");
     }
 
 }

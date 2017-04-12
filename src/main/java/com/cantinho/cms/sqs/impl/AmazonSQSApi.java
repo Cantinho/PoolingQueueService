@@ -1,4 +1,4 @@
-package br.com.pqs.sqs.impl;
+package com.cantinho.cms.sqs.impl;
 
 import com.amazonaws.services.sqs.model.*;
 

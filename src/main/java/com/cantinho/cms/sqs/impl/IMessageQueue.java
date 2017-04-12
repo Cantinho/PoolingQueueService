@@ -1,6 +1,6 @@
-package br.com.pqs.sqs.impl;
+package com.cantinho.cms.sqs.impl;
 
-import br.com.pqs.bean.Message;
+import com.cantinho.cms.bean.Message;
 
 import java.util.List;
 
@@ -29,7 +29,7 @@ import java.util.List;
  * directory of this distribution.
  *
  */
-public interface IPoolingQueue {
+public interface IMessageQueue {
 
     boolean produceMessageToMaster(final Message message) throws Exception;
 
@@ -49,5 +49,5 @@ public interface IPoolingQueue {
 
     List<Message> consumeMessageOfSlave(final String slaveId, final int amount) throws Exception;
 
-    String addSlavePoolingQueue(String slaveId) throws Exception;
+    String addSlaveMessageQueue(String slaveId) throws Exception;
 }

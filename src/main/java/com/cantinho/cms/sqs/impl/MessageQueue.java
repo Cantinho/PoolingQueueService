@@ -1,14 +1,12 @@
-package br.com.pqs.sqs.impl;
+package com.cantinho.cms.sqs.impl;
 
-import br.com.pqs.bean.Message;
-import br.com.pqs.exceptions.PoolingQueueException;
+import com.cantinho.cms.bean.Message;
+import com.cantinho.cms.exceptions.CloudiaMessageException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
-
-import static br.com.pqs.exceptions.PoolingQueueException.SLAVE_NOT_FOUND;
 
 /**
  * Copyright 2016 Cantinho. All Rights Reserved.
@@ -35,9 +33,9 @@ import static br.com.pqs.exceptions.PoolingQueueException.SLAVE_NOT_FOUND;
  * directory of this distribution.
  *
  */
-public class PoolingQueue implements IPoolingQueue {
+public class MessageQueue implements IMessageQueue {
 
-    private final Logger LOGGER = LoggerFactory.getLogger(PoolingQueue.class);
+    private final Logger LOGGER = LoggerFactory.getLogger(MessageQueue.class);
 
     final String masterLock = "MASTER_QUEUE_LOCK";
     final String slaveLock = "SLAVE_QUEUE_LOCK";
@@ -46,9 +44,9 @@ public class PoolingQueue implements IPoolingQueue {
     private Queue<Message> masterQueue = new LinkedBlockingQueue<>();
     private Map<String, Queue<Message>> slaveQueues = new TreeMap<>();
 
-    PoolingQueue() {}
+    MessageQueue() {}
 
-    PoolingQueue(String queueName) {
+    MessageQueue(String queueName) {
         this.queueName = queueName;
     }
 
@@ -180,7 +178,7 @@ public class PoolingQueue implements IPoolingQueue {
                 return messagePolled;
             }
         }
-        throw new PoolingQueueException("", SLAVE_NOT_FOUND);
+        throw new CloudiaMessageException("", CloudiaMessageException.SLAVE_NOT_FOUND);
     }
 
     public List<Message> consumeMessageOfSlave(final String slaveId, final int amount) throws Exception {
@@ -205,17 +203,17 @@ public class PoolingQueue implements IPoolingQueue {
                 }
             }
             LOGGER.info("Slave queue [" + slaveId + "] has 0 messages");
-            throw new PoolingQueueException("", SLAVE_NOT_FOUND);
+            throw new CloudiaMessageException("", CloudiaMessageException.SLAVE_NOT_FOUND);
         }
     }
 
     @Override
-    public synchronized String addSlavePoolingQueue(String slaveId) throws Exception {
+    public synchronized String addSlaveMessageQueue(String slaveId) throws Exception {
         validateQueueName();
         synchronized (slaveLock) {
             String queueName = createSlaveQueue(slaveId);
             if (queueName == null) {
-                throw new PoolingQueueException("", SLAVE_NOT_FOUND);
+                throw new CloudiaMessageException("", CloudiaMessageException.SLAVE_NOT_FOUND);
             }
             return queueName;
         }

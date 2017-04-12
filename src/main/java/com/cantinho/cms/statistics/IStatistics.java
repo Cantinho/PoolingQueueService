@@ -1,7 +1,4 @@
-package br.com.pqs.bean;
-
-import br.com.processor.mapper.SimpleMessageMapper;
-import org.springframework.http.HttpHeaders;
+package com.cantinho.cms.statistics;
 
 /**
  * Copyright 2016 Cantinho. All Rights Reserved.
@@ -28,32 +25,21 @@ import org.springframework.http.HttpHeaders;
  * directory of this distribution.
  *
  */
-public class PQSResponse {
+public interface IStatistics {
 
-    private HttpHeaders headers;
-    private SimpleMessageMapper body;
+    long getSequence();
 
-    public PQSResponse() {
-    }
+    String getLabel();
 
-    public PQSResponse(HttpHeaders headers, SimpleMessageMapper body) {
-        this.headers = headers;
-        this.body = body;
-    }
+    String getMessage();
 
-    public HttpHeaders getHeaders() {
-        return headers;
-    }
+    long getStartTime();
 
-    public void setHeaders(HttpHeaders headers) {
-        this.headers = headers;
-    }
+    long getEndTime();
 
-    public SimpleMessageMapper getBody() {
-        return body;
-    }
+    long getTotalTime();
 
-    public void setBody(SimpleMessageMapper body) {
-        this.body = body;
-    }
+    String print(boolean messageSuppressed);
+
+    String csv(boolean messageSuppressed);
 }

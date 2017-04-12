@@ -1,11 +1,11 @@
-package br.com.pqs.controllers;
+package com.cantinho.cms.controllers;
 
-import br.com.pqs.bean.PQSResponse;
-import br.com.pqs.exceptions.PoolingQueueException;
-import br.com.pqs.sqs.service.PoolingQueueService;
+import br.com.processor.mapper.MessageMapper;
+import com.cantinho.cms.bean.CMSResponse;
+import com.cantinho.cms.exceptions.CloudiaMessageException;
+import com.cantinho.cms.sqs.service.CloudiaMessageService;
 import br.com.processor.SimpleMessage;
 import br.com.processor.SimpleMessageProcessor;
-import br.com.processor.mapper.SimpleMessageMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.HttpStatus;
@@ -40,95 +40,95 @@ import javax.annotation.PostConstruct;
  *
  */
 @RestController
-@ComponentScan("br.com.pqs")
+@ComponentScan("com.cantinho.cms")
 public class PQSController {
 
     @Autowired
-    private PoolingQueueService poolingQueueService;
+    private CloudiaMessageService cloudiaMessageService;
 
     @PostConstruct
     void init() {
         System.out.println("INIT - POST CONSTRUCT");
         try {
-            poolingQueueService.setIMessageProcessor(new SimpleMessageProcessor());
-        } catch (PoolingQueueException e) {
+            cloudiaMessageService.setIMessageProcessor(new SimpleMessageProcessor());
+        } catch (CloudiaMessageException e) {
             e.printStackTrace();
         }
     }
 
     @RequestMapping(value = "/mconn", method = RequestMethod.POST)
-    public ResponseEntity<SimpleMessageMapper> mconn(@RequestHeader(value = "Master-SN") String masterSN,
-                                        @RequestHeader(value = "Content-Type") String contentType,
-                                        @RequestBody SimpleMessageMapper message) {
+    public ResponseEntity<MessageMapper> mconn(@RequestHeader(value = "Master-ID") String masterSN,
+                                               @RequestHeader(value = "Content-Type") String contentType,
+                                               @RequestBody MessageMapper message) {
 
-        SimpleMessageMapper responseMessage = poolingQueueService.mconn(masterSN, contentType, message);
+        MessageMapper responseMessage = cloudiaMessageService.mconn(masterSN, contentType, message);
 
-        return new ResponseEntity<SimpleMessageMapper>(responseMessage, HttpStatus.OK);
+        return new ResponseEntity<MessageMapper>(responseMessage, HttpStatus.OK);
     }
 
     @RequestMapping(value = "/mpull", method = RequestMethod.GET)
-    public ResponseEntity<SimpleMessageMapper> mpull(@RequestHeader(value = "Master-SN") String masterSN) {
+    public ResponseEntity<MessageMapper> mpull(@RequestHeader(value = "Master-ID") String masterSN) {
 
-        PQSResponse pqsResponse = poolingQueueService.mpull(masterSN);
+        CMSResponse CMSResponse = cloudiaMessageService.mpull(masterSN);
 
-        return new ResponseEntity<SimpleMessageMapper>(pqsResponse.getBody(), pqsResponse.getHeaders(), HttpStatus.OK);
+        return new ResponseEntity<MessageMapper>(CMSResponse.getBody(), CMSResponse.getHeaders(), HttpStatus.OK);
     }
 
     @RequestMapping(value = "/mpush", method = RequestMethod.POST)
-    public ResponseEntity<SimpleMessageMapper> mpush(@RequestHeader(value = "Master-SN") String masterSN,
+    public ResponseEntity<MessageMapper> mpush(@RequestHeader(value = "Master-ID") String masterSN,
                                         @RequestHeader(value = "Slave-ID", required = false) String slaveId,
                                         @RequestHeader(value = "Broadcast", required = false) String broadcast,
                                         @RequestHeader(value = "Content-Type") String contentType,
-                                        @RequestBody SimpleMessageMapper message) {
+                                        @RequestBody MessageMapper message) {
 
-        SimpleMessageMapper responseMessage = poolingQueueService.mpush(masterSN, slaveId, broadcast, contentType, message);
+        MessageMapper responseMessage = cloudiaMessageService.mpush(masterSN, slaveId, broadcast, contentType, message);
 
-        return new ResponseEntity<SimpleMessageMapper>(responseMessage, HttpStatus.OK);
+        return new ResponseEntity<MessageMapper>(responseMessage, HttpStatus.OK);
     }
 
     @RequestMapping(value = "/sconn", method = RequestMethod.POST)
-    public ResponseEntity<SimpleMessageMapper> sconn(@RequestHeader(value = "Master-SN") String masterSN,
+    public ResponseEntity<MessageMapper> sconn(@RequestHeader(value = "Master-ID") String masterSN,
                                         @RequestHeader(value = "Slave-ID") String slaveId,
                                         @RequestHeader(value = "Content-Type") String contentType,
-                                        @RequestBody SimpleMessageMapper message) {
+                                        @RequestBody MessageMapper message) {
 
-        SimpleMessageMapper responseMessage = poolingQueueService.sconn(masterSN, slaveId, contentType, message);
+        MessageMapper responseMessage = cloudiaMessageService.sconn(masterSN, slaveId, contentType, message);
 
-        return new ResponseEntity<SimpleMessageMapper>(responseMessage, HttpStatus.OK);
+        return new ResponseEntity<MessageMapper>(responseMessage, HttpStatus.OK);
     }
 
     @RequestMapping(value = "/spull", method = RequestMethod.GET)
-    public ResponseEntity<SimpleMessageMapper> spull(@RequestHeader(value = "Master-SN") String masterSN,
+    public ResponseEntity<MessageMapper> spull(@RequestHeader(value = "Master-ID") String masterSN,
                                         @RequestHeader(value = "Slave-ID") String slaveId,
                                         @RequestHeader(value = "Message-Amount", required = false) String messageAmount) {
 
-        PQSResponse pqsResponse = poolingQueueService.spull(masterSN, slaveId, messageAmount);
+        CMSResponse CMSResponse = cloudiaMessageService.spull(masterSN, slaveId, messageAmount);
 
-        return new ResponseEntity<SimpleMessageMapper>(pqsResponse.getBody(), pqsResponse.getHeaders(), HttpStatus.OK);
+        return new ResponseEntity<MessageMapper>(CMSResponse.getBody(), CMSResponse.getHeaders(), HttpStatus.OK);
     }
 
 
 
     @RequestMapping(value = "/spush", method = RequestMethod.POST)
-    public ResponseEntity<SimpleMessageMapper> spush(@RequestHeader(value = "Master-SN") String masterSN,
+    public ResponseEntity<MessageMapper> spush(@RequestHeader(value = "Master-ID") String masterSN,
                                         @RequestHeader(value = "Slave-ID") String slaveId,
                                         @RequestHeader(value = "Content-Type") String contentType,
-                                        @RequestBody SimpleMessageMapper message) {
+                                        @RequestBody MessageMapper message) {
 
-        SimpleMessageMapper responseMessage = poolingQueueService.spush(masterSN, slaveId, contentType, message);
+        MessageMapper responseMessage = cloudiaMessageService.spush(masterSN, slaveId, contentType, message);
 
-        return new ResponseEntity<SimpleMessageMapper>(responseMessage, HttpStatus.OK);
+        return new ResponseEntity<MessageMapper>(responseMessage, HttpStatus.OK);
     }
 
 
     @RequestMapping(value = "/isconn", method = RequestMethod.GET)
-    public ResponseEntity<SimpleMessageMapper> isconn(@RequestHeader(value = "Master-SN") String masterSN) {
+    public ResponseEntity<MessageMapper> isconn(@RequestHeader(value = "Master-ID") String masterSN) {
 
-        boolean isconn = poolingQueueService.isconn(masterSN);
-        SimpleMessageMapper responseMessage = new SimpleMessageMapper();
+        boolean isconn = cloudiaMessageService.misconn(masterSN);
+        MessageMapper responseMessage = new MessageMapper();
         responseMessage.setMessage(isconn ? SimpleMessage.OK : SimpleMessage.ERROR);
 
-        return new ResponseEntity<SimpleMessageMapper>(responseMessage, HttpStatus.OK);
+        return new ResponseEntity<MessageMapper>(responseMessage, HttpStatus.OK);
     }
 
 }

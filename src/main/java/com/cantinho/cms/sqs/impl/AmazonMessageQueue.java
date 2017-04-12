@@ -1,6 +1,6 @@
-package br.com.pqs.sqs.impl;
+package com.cantinho.cms.sqs.impl;
 
-import br.com.pqs.bean.Message;
+import com.cantinho.cms.bean.Message;
 import com.amazonaws.services.sqs.model.DeleteMessageBatchRequestEntry;
 import com.amazonaws.services.sqs.model.SendMessageResult;
 import org.slf4j.Logger;
@@ -11,8 +11,8 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
-import static br.com.pqs.bean.Message.parseMinimalistStringToMessage;
-import static br.com.pqs.bean.Message.parseToMinimalistString;
+import static com.cantinho.cms.bean.Message.parseMinimalistStringToMessage;
+import static com.cantinho.cms.bean.Message.parseToMinimalistString;
 
 /**
  * Copyright 2016 Cantinho. All Rights Reserved.
@@ -39,22 +39,22 @@ import static br.com.pqs.bean.Message.parseToMinimalistString;
  * directory of this distribution.
  *
  */
-public class AmazonPoolingQueue implements IPoolingQueue {
+public class AmazonMessageQueue implements IMessageQueue {
 
-    private final Logger LOGGER = LoggerFactory.getLogger(PoolingQueue.class);
+    private final Logger LOGGER = LoggerFactory.getLogger(MessageQueue.class);
     final String masterLock = "MASTER_QUEUE_LOCK";
     final String slaveLock = "SLAVE_QUEUE_LOCK";
 
     private String queueName = "";
     private AmazonSQSApi amazonSQSApi;
 
-    AmazonPoolingQueue(){}
+    AmazonMessageQueue(){}
 
-    AmazonPoolingQueue(AmazonSQSApi amazonSQSApi) {
+    AmazonMessageQueue(AmazonSQSApi amazonSQSApi) {
         this.amazonSQSApi = amazonSQSApi;
     }
 
-    AmazonPoolingQueue(AmazonSQSApi amazonSQSApi, String queueName) {
+    AmazonMessageQueue(AmazonSQSApi amazonSQSApi, String queueName) {
         this.amazonSQSApi = amazonSQSApi;
         this.queueName = queueName;
     }
@@ -73,7 +73,7 @@ public class AmazonPoolingQueue implements IPoolingQueue {
         }
     }
 
-    public void initializePoolingQueue() throws Exception {
+    public void initializeMessageQueue() throws Exception {
         checkAmazonSQSApiInstance();
         amazonSQSApi.createQueue(queueName);
     }
@@ -282,7 +282,7 @@ public class AmazonPoolingQueue implements IPoolingQueue {
     }
 
     @Override
-    public String addSlavePoolingQueue(String slaveId) throws Exception {
+    public String addSlaveMessageQueue(String slaveId) throws Exception {
         //TODO FIXME PLEASE
         return null;
     }

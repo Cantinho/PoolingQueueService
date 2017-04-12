@@ -1,10 +1,9 @@
-package br.com.pqs.sqs.service;
+package com.cantinho.cms.sqs.service;
 
-
-import br.com.pqs.bean.PQSResponse;
-import br.com.pqs.exceptions.PoolingQueueException;
+import br.com.processor.mapper.MessageMapper;
+import com.cantinho.cms.bean.CMSResponse;
+import com.cantinho.cms.exceptions.CloudiaMessageException;
 import br.com.processor.IMessageProcessor;
-import br.com.processor.mapper.SimpleMessageMapper;
 
 /**
  * Copyright 2016 Cantinho. All Rights Reserved.
@@ -31,21 +30,24 @@ import br.com.processor.mapper.SimpleMessageMapper;
  * directory of this distribution.
  *
  */
-public interface PoolingQueueService {
+public interface CloudiaMessageService {
 
-    void setIMessageProcessor(final IMessageProcessor iMessageProcessor) throws PoolingQueueException;
+    void setIMessageProcessor(final IMessageProcessor iMessageProcessor) throws CloudiaMessageException;
 
-    SimpleMessageMapper mconn(String serialNumber, String contentType, SimpleMessageMapper messageMapper);
+    boolean misconn(String masterId);
 
-    PQSResponse mpull(String serialNumber);
+    MessageMapper mconn(String masterId, String contentType, MessageMapper messageMapper);
 
-    SimpleMessageMapper mpush(String serialNumber, String slaveId, String broadcast, String contentType, SimpleMessageMapper messageMapper);
+    CMSResponse mpull(String serialNumber);
 
-    SimpleMessageMapper sconn(String serialNumber, String slaveId, String contentType, SimpleMessageMapper messageMapper);
+    MessageMapper mpush(String masterId, String slaveId, String broadcast, String contentType, MessageMapper messageMapper);
 
-    PQSResponse spull(String serialNumber, String slaveId, String messageAmount);
+    boolean sisconn(String slaveId);
 
-    SimpleMessageMapper spush(String serialNumber, String slaveId, String contentType, SimpleMessageMapper messageMapper);
+    MessageMapper sconn(String masterId, String slaveId, String contentType, MessageMapper messageMapper);
 
-    boolean isconn(String serialNumber);
+    CMSResponse spull(String masterId, String slaveId, String messageAmount);
+
+    MessageMapper spush(String masterId, String slaveId, String contentType, MessageMapper messageMapper);
+
 }

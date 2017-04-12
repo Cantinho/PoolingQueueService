@@ -1,6 +1,6 @@
-package br.com.pqs;
+package com.cantinho.cms;
 
-import br.com.pqs.controllers.Controller;
+import com.cantinho.cms.controllers.Controller;
 import org.apache.catalina.connector.Connector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

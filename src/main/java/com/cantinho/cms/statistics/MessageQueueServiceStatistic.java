@@ -1,4 +1,4 @@
-package br.com.pqs.statistics;
+package com.cantinho.cms.statistics;
 
 /**
  * Copyright 2016 Cantinho. All Rights Reserved.
@@ -25,7 +25,7 @@ package br.com.pqs.statistics;
  * directory of this distribution.
  *
  */
-public class PoolingQueueServiceStatistic implements IStatistics {
+public class MessageQueueServiceStatistic implements IStatistics {
 
     private static long globalSequence = 1;
 
@@ -35,8 +35,8 @@ public class PoolingQueueServiceStatistic implements IStatistics {
     private long endTime;
     private String message;
 
-    public PoolingQueueServiceStatistic(String label, long startTime, long endTime, String message) {
-        synchronized (PoolingQueueServiceStatistic.class) {
+    public MessageQueueServiceStatistic(String label, long startTime, long endTime, String message) {
+        synchronized (MessageQueueServiceStatistic.class) {
             this.sequence = globalSequence++;
         }
         this.label = label;
@@ -45,7 +45,7 @@ public class PoolingQueueServiceStatistic implements IStatistics {
         this.message = message;
     }
 
-    public PoolingQueueServiceStatistic(String label, long startTime, long endTime) {
+    public MessageQueueServiceStatistic(String label, long startTime, long endTime) {
         this(label, startTime, endTime, "");
     }
 

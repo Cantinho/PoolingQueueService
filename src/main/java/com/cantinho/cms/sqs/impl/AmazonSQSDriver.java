@@ -1,10 +1,11 @@
-package br.com.pqs.sqs.impl;
+package com.cantinho.cms.sqs.impl;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.services.sqs.AmazonSQSClient;
 import com.amazonaws.services.sqs.model.*;
+import com.cantinho.cms.exceptions.AmazonSQSException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,7 +52,7 @@ public class AmazonSQSDriver implements AmazonSQSApi {
 
     //String myQueueUrl = "https://sqs.us-east-2.amazonaws.com/796804300465/MyFifoQueue.fifo";
 
-    public AmazonSQSDriver(final String baseUrl, final String accountId, final String  queueType) throws br.com.pqs.exceptions.AmazonSQSException {
+    public AmazonSQSDriver(final String baseUrl, final String accountId, final String  queueType) throws com.cantinho.cms.exceptions.AmazonSQSException {
         if(baseUrl == null) {
             this.baseUrl = "https://sqs.us-east-2.amazonaws.com";
         } else {
@@ -60,7 +61,7 @@ public class AmazonSQSDriver implements AmazonSQSApi {
         LOGGER.info("Endpoint (baseurl): " + this.baseUrl);
 
         if(accountId == null){
-            throw new br.com.pqs.exceptions.AmazonSQSException("You must inform a valid accountId.", br.com.pqs.exceptions.AmazonSQSException.INVALID_CREDENTIALS);
+            throw new AmazonSQSException("You must inform a valid accountId.", AmazonSQSException.INVALID_CREDENTIALS);
         }
         this.accountId = accountId; // "796804300465"
         LOGGER.info("Account ID: " + this.accountId);

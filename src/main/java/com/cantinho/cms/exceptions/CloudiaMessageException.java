@@ -1,4 +1,4 @@
-package br.com.pqs.statistics;
+package com.cantinho.cms.exceptions;
 
 /**
  * Copyright 2016 Cantinho. All Rights Reserved.
@@ -25,21 +25,35 @@ package br.com.pqs.statistics;
  * directory of this distribution.
  *
  */
-public interface IStatistics {
+public class CloudiaMessageException extends Exception {
 
-    long getSequence();
+    public static final int MASTER_NOT_FOUND = 400;
+    public static final int SLAVE_NOT_FOUND = 500;
+    public static final int INVALID_CONTENT_TYPE = 600;
 
-    String getLabel();
+    private int code;
 
-    String getMessage();
+    public CloudiaMessageException(String message) {
+        super(message);
+        this.code = -1;
+    }
 
-    long getStartTime();
+    public CloudiaMessageException(String message, int code) {
+        super(message);
+        this.code = code;
+    }
 
-    long getEndTime();
+    public int getCode() {
+        return code;
+    }
 
-    long getTotalTime();
-
-    String print(boolean messageSuppressed);
-
-    String csv(boolean messageSuppressed);
+    @Override
+    public String toString() {
+        StringBuilder strBuilder = new StringBuilder();
+        strBuilder.append(CloudiaMessageException.class.getName() + ":[");
+        strBuilder.append("message:" + getMessage() + ";");
+        strBuilder.append("code:" + getCode());
+        strBuilder.append("]");
+        return strBuilder.toString();
+    }
 }

@@ -1,4 +1,6 @@
-package br.com.pqs.exceptions;
+package com.cantinho.cms.statistics;
+
+import java.util.List;
 
 /**
  * Copyright 2016 Cantinho. All Rights Reserved.
@@ -25,33 +27,8 @@ package br.com.pqs.exceptions;
  * directory of this distribution.
  *
  */
-public class AmazonSQSException extends Exception {
+public interface IRequestStatisticallyProfilable {
 
-    public static final int INVALID_CREDENTIALS = 500;
+    List<IStatistics> collectStatistics();
 
-    private int code;
-
-    public AmazonSQSException(String message) {
-        super(message);
-        this.code = -1;
-    }
-
-    public AmazonSQSException(String message, int code) {
-        super(message);
-        this.code = code;
-    }
-
-    public int getCode() {
-        return code;
-    }
-
-    @Override
-    public String toString() {
-        StringBuilder strBuilder = new StringBuilder();
-        strBuilder.append(AmazonSQSException.class.getName() + ":[");
-        strBuilder.append("message:" + getMessage() + ";");
-        strBuilder.append("code:" + getCode());
-        strBuilder.append("]");
-        return strBuilder.toString();
-    }
 }

@@ -1,8 +1,8 @@
-package br.com.pqs.controllers;
+package com.cantinho.cms.controllers;
 
-import br.com.pqs.sqs.SimpleMessageQueue;
-import br.com.pqs.statistics.IRequestStatisticallyProfilable;
-import br.com.pqs.statistics.IStatistics;
+import com.cantinho.cms.sqs.MessageQueue;
+import com.cantinho.cms.statistics.IRequestStatisticallyProfilable;
+import com.cantinho.cms.statistics.IStatistics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,21 +43,21 @@ import java.util.List;
  *
  */
 @RestController
-@ComponentScan("br.com.pqs")
+@ComponentScan("com.cantinho.cms")
 public class Controller implements IRequestStatisticallyProfilable {
 
     private final Logger LOGGER = LoggerFactory.getLogger(Controller.class);
 
-    private List<IStatistics> poolingQueueServiceStatistics = new ArrayList<>();
+    private List<IStatistics> cloudiaMessageServiceStatistics = new ArrayList<>();
 
     @Autowired
-    private SimpleMessageQueue simpleMessageQueue;
+    private MessageQueue messageQueue;
 
     @PostConstruct
     public void init() {
         // This method runs after the controller has been created.
-        // Uncomment the following line to customize a pooling queue implementation.
-        // simpleMessageQueue.setPoolingQueueClassName(SOME_POOLING_QUEUE_IMPLEMENTATION_NAME_HERE);
+        // Uncomment the following line to customize a message queue implementation.
+        // messageQueue.setMessageQueueClassName(SOME_MESSAGE_QUEUE_IMPLEMENTATION_NAME_HERE);
     }
 
     @RequestMapping(value = "/", method = RequestMethod.GET)
@@ -68,7 +68,7 @@ public class Controller implements IRequestStatisticallyProfilable {
 
     @Override
     public List<IStatistics> collectStatistics() {
-        return poolingQueueServiceStatistics;
+        return cloudiaMessageServiceStatistics;
     }
 
     @RequestMapping(value = "/statistics", method = RequestMethod.GET)

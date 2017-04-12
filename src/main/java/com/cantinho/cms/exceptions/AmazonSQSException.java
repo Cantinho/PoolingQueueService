@@ -1,4 +1,4 @@
-package br.com.pqs.exceptions;
+package com.cantinho.cms.exceptions;
 
 /**
  * Copyright 2016 Cantinho. All Rights Reserved.
@@ -25,20 +25,18 @@ package br.com.pqs.exceptions;
  * directory of this distribution.
  *
  */
-public class PoolingQueueException extends Exception {
+public class AmazonSQSException extends Exception {
 
-    public static final int MASTER_NOT_FOUND = 400;
-    public static final int SLAVE_NOT_FOUND = 500;
-    public static final int INVALID_CONTENT_TYPE = 600;
+    public static final int INVALID_CREDENTIALS = 500;
 
     private int code;
 
-    public PoolingQueueException(String message) {
+    public AmazonSQSException(String message) {
         super(message);
         this.code = -1;
     }
 
-    public PoolingQueueException(String message, int code) {
+    public AmazonSQSException(String message, int code) {
         super(message);
         this.code = code;
     }
@@ -50,7 +48,7 @@ public class PoolingQueueException extends Exception {
     @Override
     public String toString() {
         StringBuilder strBuilder = new StringBuilder();
-        strBuilder.append(PoolingQueueException.class.getName() + ":[");
+        strBuilder.append(AmazonSQSException.class.getName() + ":[");
         strBuilder.append("message:" + getMessage() + ";");
         strBuilder.append("code:" + getCode());
         strBuilder.append("]");

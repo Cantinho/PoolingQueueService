@@ -1,6 +1,7 @@
-package br.com.pqs.statistics;
+package com.cantinho.cms.bean;
 
-import java.util.List;
+import br.com.processor.mapper.MessageMapper;
+import org.springframework.http.HttpHeaders;
 
 /**
  * Copyright 2016 Cantinho. All Rights Reserved.
@@ -27,8 +28,31 @@ import java.util.List;
  * directory of this distribution.
  *
  */
-public interface IRequestStatisticallyProfilable {
+public class CMSResponse {
 
-    List<IStatistics> collectStatistics();
+    private HttpHeaders headers;
+    private MessageMapper body;
 
+    public CMSResponse() {}
+
+    public CMSResponse(HttpHeaders headers, MessageMapper body) {
+        this.headers = headers;
+        this.body = body;
+    }
+
+    public HttpHeaders getHeaders() {
+        return headers;
+    }
+
+    public void setHeaders(HttpHeaders headers) {
+        this.headers = headers;
+    }
+
+    public MessageMapper getBody() {
+        return body;
+    }
+
+    public void setBody(MessageMapper body) {
+        this.body = body;
+    }
 }
